@@ -26,8 +26,14 @@ sdk.StateChanged += (_, state) => Console.WriteLine($"[State] {state}");
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-// BLE first — falls back to BT Classic automatically after 5 seconds
+// Auto: BLE first, falls back to BT Classic automatically after 5 seconds (default)
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
+
+// BLE only (no pairing required)
+await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.Ble);
+
+// BT Classic only (requires Windows pairing)
+await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
 
 await foreach (var data in sdk.DataStream(cts.Token))
 {

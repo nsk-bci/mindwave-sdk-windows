@@ -38,34 +38,55 @@ public sealed class NeuroSkySdk : IAsyncDisposable
         => _active.DataStream(ct);
 
     /// <summary>
-    /// BLE-first connection. Automatically falls back to BT Classic if BLE fails within 5 seconds.
+    /// Connect to a MindWave headset.
     /// </summary>
     /// <param name="deviceAddress">Bluetooth MAC address (e.g. "AA:BB:CC:DD:EE:FF")</param>
-    public async Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
+    /// <param name="mode">
+    /// <see cref="TransportMode.Auto"/> — BLE first, falls back to BT Classic (default).<br/>
+    /// <see cref="TransportMode.Ble"/> — BLE only, no pairing required.<br/>
+    /// <see cref="TransportMode.BtClassic"/> — BT Classic only, requires Windows pairing.
+    /// </param>
+    public async Task ConnectAsync(string deviceAddress, TransportMode mode = TransportMode.Auto, CancellationToken ct = default)
     {
-        // Try BLE
-        using var bleCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        bleCts.CancelAfter(TimeSpan.FromSeconds(5));
-
-        try
+        switch (mode)
         {
-            _active = _ble;
-            _ble.StateChanged += ForwardState;
-            await _ble.ConnectAsync(deviceAddress, bleCts.Token);
+            case TransportMode.Ble:
+                _active = _ble;
+                _ble.StateChanged += ForwardState;
+                await _ble.ConnectAsync(deviceAddress, ct);
+                break;
 
-            if (_ble.State == ConnectionState.Connected) return;
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            _ble.StateChanged -= ForwardState;
-        }
+            case TransportMode.BtClassic:
+                _active = _bt;
+                _bt.StateChanged += ForwardState;
+                await _bt.ConnectAsync(deviceAddress, ct);
+                break;
 
-        // BT Classic fallback
-        await _ble.DisconnectAsync();
-        _active = _bt;
-        _bt.StateChanged += ForwardState;
-        await _bt.ConnectAsync(deviceAddress, ct);
+            default: // Auto: BLE first, BT Classic fallback
+                using (var bleCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                {
+                    bleCts.CancelAfter(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        _active = _ble;
+                        _ble.StateChanged += ForwardState;
+                        await _ble.ConnectAsync(deviceAddress, bleCts.Token);
+                        if (_ble.State == ConnectionState.Connected) return;
+                    }
+                    catch (OperationCanceledException) { }
+                    finally
+                    {
+                        _ble.StateChanged -= ForwardState;
+                    }
+                }
+
+                // BT Classic fallback
+                await _ble.DisconnectAsync();
+                _active = _bt;
+                _bt.StateChanged += ForwardState;
+                await _bt.ConnectAsync(deviceAddress, ct);
+                break;
+        }
     }
 
     public async Task DisconnectAsync() => await _active.DisconnectAsync();

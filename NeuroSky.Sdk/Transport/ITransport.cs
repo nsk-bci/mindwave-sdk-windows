@@ -23,3 +23,13 @@ public enum ConnectionState
     Connected,
     Error
 }
+
+public enum TransportMode
+{
+    /// <summary>BLE first, falls back to BT Classic automatically.</summary>
+    Auto,
+    /// <summary>BLE only. No pairing required.</summary>
+    Ble,
+    /// <summary>BT Classic only. Requires Windows pairing.</summary>
+    BtClassic
+}
