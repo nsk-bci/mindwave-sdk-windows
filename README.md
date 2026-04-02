@@ -4,7 +4,7 @@
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via WinRT, no TGC dependency.
+Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via WinRT.
 
 ---
 
