@@ -13,7 +13,7 @@ public static class NeuroSkyUuid
     // BT Classic SPP
     public static readonly Guid Spp       = new("00001101-0000-1000-8000-00805f9b34fb");
 
-    // Device Info (표준 BLE)
+    // Device Info (standard BLE)
     public static readonly Guid Manufacturer  = new("00002a29-0000-1000-8000-00805f9b34fb");
     public static readonly Guid ModelNumber   = new("00002a24-0000-1000-8000-00805f9b34fb");
     public static readonly Guid SerialNumber  = new("00002a25-0000-1000-8000-00805f9b34fb");
@@ -28,6 +28,6 @@ public static class NeuroSkyCommand
     public const byte StopRawEeg  = 0x16;
     public const byte StartESense = 0x17;
     public const byte StopESense  = 0x18;
-    public const byte Notch50Hz   = 0x1B;  // 중국/유럽
-    public const byte Notch60Hz   = 0x1C;  // 한국/미국
+    public const byte Notch50Hz   = 0x1B;  // China/Europe
+    public const byte Notch60Hz   = 0x1C;  // Korea/USA
 }

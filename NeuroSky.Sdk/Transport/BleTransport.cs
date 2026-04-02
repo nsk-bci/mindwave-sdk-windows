@@ -32,7 +32,7 @@ public sealed class BleTransport : ITransport
     {
         SetState(ConnectionState.Scanning);
 
-        // MAC 주소(문자열) → ulong 변환
+        // MAC address string → ulong
         ulong address = ParseAddress(deviceAddress);
         _device = await BluetoothLEDevice.FromBluetoothAddressAsync(address);
 
@@ -51,7 +51,7 @@ public sealed class BleTransport : ITransport
             return;
         }
 
-        // eSense / RawEEG / Handshake characteristic 탐색
+        // Discover eSense / RawEEG / Handshake characteristics
         foreach (var service in servicesResult.Services)
         {
             var charsResult = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached);
@@ -75,7 +75,7 @@ public sealed class BleTransport : ITransport
         if (_rawEegChar is not null)
             await EnableNotificationsAsync(_rawEegChar);
 
-        // 핸드셰이크 — eSense 데이터 수신 시작
+        // Handshake — start receiving eSense data
         await SendHandshakeAsync(NeuroSkyCommand.StartESense);
         SetState(ConnectionState.Connected);
     }
@@ -124,7 +124,7 @@ public sealed class BleTransport : ITransport
         packet[0] = 0x77;
         packet[1] = 0x01;
         packet[2] = cmd;
-        // 체크섬: bytes[1..18] XOR 0xFF AND 0xFF
+        // Checksum: bytes[1..18] XOR 0xFF AND 0xFF
         int sum = 0;
         for (int i = 1; i <= 18; i++) sum += packet[i];
         packet[19] = (byte)((sum ^ 0xFF) & 0xFF);

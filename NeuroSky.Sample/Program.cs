@@ -1,7 +1,7 @@
 using NeuroSky.Sdk;
 using NeuroSky.Sdk.Simulator;
 
-// ── 시뮬레이터로 테스트 ───────────────────────────────────────────────────────
+// ── Simulator test ────────────────────────────────────────────────────────────
 Console.WriteLine("=== NeuroSky MindWave Windows SDK - Simulator ===");
 
 var simulator = new SimulatorTransport();
@@ -36,14 +36,14 @@ await foreach (var data in simulator.DataStream(cts.Token))
     Console.WriteLine("Ctrl+C to exit");
 }
 
-// ── 실기기 연결 예시 (주석 해제 후 사용) ──────────────────────────────────────
+// ── Real device example (uncomment to use) ───────────────────────────────────
 /*
 await using var sdk = new NeuroSkySdk();
 sdk.StateChanged += (_, state) => Console.WriteLine($"[State] {state}");
 
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");  // ← 실제 MAC 주소 입력
+await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");  // ← enter actual MAC address
 
-// 한국/미국 노치 필터 설정
+// Set notch filter for Korea/USA
 await sdk.SendCommandAsync(NeuroSkyCommand.Notch60Hz);
 
 await foreach (var data in sdk.DataStream(cts.Token))

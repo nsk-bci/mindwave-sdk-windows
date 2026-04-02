@@ -3,15 +3,15 @@ using NeuroSky.Sdk.Model;
 namespace NeuroSky.Sdk.Parser;
 
 /// <summary>
-/// NeuroSky ThinkGear 패킷 파서.
-/// BLE 모드: <see cref="Parse"/> 사용.
-/// BT Classic 모드: <see cref="ParseByte"/> 에 스트림 바이트를 1바이트씩 전달.
+/// NeuroSky ThinkGear packet parser.
+/// BLE mode: use <see cref="Parse"/>.
+/// BT Classic mode: feed stream bytes one at a time into <see cref="ParseByte"/>.
 /// </summary>
 public sealed class ThinkGearParser
 {
     private BrainWaveData _current = new();
 
-    // ── BLE 모드 ──────────────────────────────────────────────────────────────
+    // ── BLE Mode ──────────────────────────────────────────────────────────────
 
     public BrainWaveData? Parse(Guid uuid, byte[] bytes)
     {
@@ -72,7 +72,7 @@ public sealed class ThinkGearParser
         return _current;
     }
 
-    // ── BT Classic 모드 (ThinkGear Serial 프로토콜) ────────────────────────
+    // ── BT Classic Mode (ThinkGear Serial Protocol) ────────────────────────
 
     private enum SerialState { Sync1, Sync2, PLength, Payload, Checksum }
     private SerialState _serialState = SerialState.Sync1;

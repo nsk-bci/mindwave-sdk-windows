@@ -4,8 +4,8 @@ using NeuroSky.Sdk.Transport;
 namespace NeuroSky.Sdk;
 
 /// <summary>
-/// NeuroSky MindWave Windows SDK 진입점.
-/// BLE를 우선 시도하고, 5초 내 실패 시 BT Classic으로 자동 폴백.
+/// Entry point for the NeuroSky MindWave Windows SDK.
+/// Tries BLE first; automatically falls back to BT Classic if not connected within 5 seconds.
 /// </summary>
 /// <example>
 /// <code>
@@ -33,17 +33,17 @@ public sealed class NeuroSkySdk : IAsyncDisposable
         _ble.StateChanged += (_, s) => StateChanged?.Invoke(this, s);
     }
 
-    /// <summary>실시간 뇌파 데이터 스트림.</summary>
+    /// <summary>Real-time EEG data stream.</summary>
     public IAsyncEnumerable<BrainWaveData> DataStream(CancellationToken ct = default)
         => _active.DataStream(ct);
 
     /// <summary>
-    /// BLE 우선 연결. 5초 내 연결 실패 시 BT Classic 자동 폴백.
+    /// BLE-first connection. Automatically falls back to BT Classic if BLE fails within 5 seconds.
     /// </summary>
-    /// <param name="deviceAddress">Bluetooth MAC 주소 (예: "AA:BB:CC:DD:EE:FF")</param>
+    /// <param name="deviceAddress">Bluetooth MAC address (e.g. "AA:BB:CC:DD:EE:FF")</param>
     public async Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
     {
-        // BLE 시도
+        // Try BLE
         using var bleCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         bleCts.CancelAfter(TimeSpan.FromSeconds(5));
 
@@ -61,7 +61,7 @@ public sealed class NeuroSkySdk : IAsyncDisposable
             _ble.StateChanged -= ForwardState;
         }
 
-        // BT Classic 폴백
+        // BT Classic fallback
         await _ble.DisconnectAsync();
         _active = _bt;
         _bt.StateChanged += ForwardState;

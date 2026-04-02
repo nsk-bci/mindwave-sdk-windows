@@ -57,7 +57,7 @@ public sealed class BtClassicTransport : ITransport
 
             SetState(ConnectionState.Connected);
 
-            // 백그라운드에서 스트림 읽기 시작
+            // Start reading stream in background
             _readCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             _ = ReadLoopAsync(_readCts.Token);
         }
