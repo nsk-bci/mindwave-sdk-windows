@@ -216,7 +216,6 @@ dotnet run --project NeuroSky.Sample
 ## Changelog
 
 ### v2.0.0
-- Removed TGC (ThinkGear Connector) dependency entirely
 - WinRT BLE GATT implementation (`Windows.Devices.Bluetooth`)
 - WinRT RFCOMM SPP implementation (`Windows.Devices.Bluetooth.Rfcomm`)
 - `TransportMode` enum: Auto (BLE→BT fallback), Ble only, BtClassic only
