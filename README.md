@@ -1,7 +1,6 @@
 # NeuroSky MindWave Mobile Windows SDK
 
 [![NuGet](https://img.shields.io/nuget/v/NeuroSky.MindWave.Sdk)](https://www.nuget.org/packages/NeuroSky.MindWave.Sdk)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/NeuroSky.MindWave.Sdk)](https://www.nuget.org/packages/NeuroSky.MindWave.Sdk)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
