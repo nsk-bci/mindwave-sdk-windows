@@ -4,3 +4,8 @@ obj/
 *.user
 .gradle/
 artifacts/
+
+# docs build artifacts
+docs/node_modules/
+docs/package-lock.json
+docs/package.json
