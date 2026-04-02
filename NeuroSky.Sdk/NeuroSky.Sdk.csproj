@@ -7,10 +7,23 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <RootNamespace>NeuroSky.Sdk</RootNamespace>
     <AssemblyName>NeuroSky.Sdk</AssemblyName>
-    <Version>2.0.0</Version>
-    <Authors>NeuroSky</Authors>
-    <Description>Modern Windows SDK for NeuroSky MindWave EEG headsets — BLE + BT Classic via WinRT, no TGC dependency</Description>
+
+    <!-- NuGet Package Metadata -->
     <PackageId>NeuroSky.MindWave.Sdk</PackageId>
+    <Version>2.0.0</Version>
+    <Authors>nsk-bci</Authors>
+    <Description>Modern C# SDK for NeuroSky MindWave EEG headsets — BLE + BT Classic via WinRT, no TGC dependency</Description>
+    <PackageTags>neurosky;mindwave;eeg;bci;ble;bluetooth;sdk</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/nsk-bci/mindwave-sdk-windows</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nsk-bci/mindwave-sdk-windows</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>
