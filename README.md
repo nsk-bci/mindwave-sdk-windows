@@ -1,5 +1,9 @@
 # NeuroSky MindWave Windows SDK
 
+[![NuGet](https://img.shields.io/nuget/v/NeuroSky.MindWave.Sdk)](https://www.nuget.org/packages/NeuroSky.MindWave.Sdk)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/NeuroSky.MindWave.Sdk)](https://www.nuget.org/packages/NeuroSky.MindWave.Sdk)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 Modern C# SDK for NeuroSky MindWave EEG headsets — BLE + BT Classic via WinRT, no TGC dependency.
 
 ## Requirements
@@ -64,10 +68,29 @@ await foreach (var data in simulator.DataStream(cts.Token))
 | Transport | Method | Requirement |
 |---|---|---|
 | `BleTransport` | WinRT BLE GATT | Windows 10 1903+, BLE adapter |
-| `BtClassicTransport` | WinRT RFCOMM SPP | Paired device required |
+| `BtClassicTransport` | WinRT RFCOMM SPP | Paired device in Windows Settings |
 | `SimulatorTransport` | Virtual data | For development/testing |
 
-`NeuroSkySdk` tries BLE first. If not connected within 5 seconds, it automatically switches to BT Classic.
+### TransportMode
+
+Control which transport is used via the `mode` parameter in `ConnectAsync`:
+
+| Mode | Behavior |
+|---|---|
+| `TransportMode.Auto` | BLE first; automatically falls back to BT Classic after 5 seconds (default) |
+| `TransportMode.Ble` | BLE only — no Windows pairing required |
+| `TransportMode.BtClassic` | BT Classic only — device must be paired in Windows Bluetooth Settings |
+
+```csharp
+// Auto (default): BLE → BT Classic fallback
+await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
+
+// BLE only
+await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.Ble);
+
+// BT Classic only (pair first: Settings → Bluetooth & other devices)
+await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
+```
 
 ## BrainWaveData
 
@@ -156,10 +179,11 @@ dotnet run --project NeuroSky.Sample
 - Removed TGC (ThinkGear Connector) dependency entirely
 - WinRT BLE GATT implementation (`Windows.Devices.Bluetooth`)
 - WinRT RFCOMM SPP implementation (`Windows.Devices.Bluetooth.Rfcomm`)
-- BLE first + automatic BT Classic fallback
+- `TransportMode` enum: Auto (BLE→BT fallback), Ble only, BtClassic only
 - `IAsyncEnumerable<BrainWaveData>` stream API
 - Simulator modes: Random / Focused / Relaxed / PoorSignal
 - .NET 8, C# 12
+- Published to NuGet.org
 
 ## License
 
