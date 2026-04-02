@@ -24,7 +24,8 @@ title: NeuroSky MindWave Mobile Windows SDK — Developer Guide
 13. [Advanced Patterns](#13-advanced-patterns)
 14. [Finding Your Device MAC Address](#14-finding-your-device-mac-address)
 15. [Troubleshooting](#15-troubleshooting)
-16. [API Reference](#16-api-reference)
+16. [Testing](#16-testing)
+17. [API Reference](#17-api-reference)
 
 ---
 
@@ -1142,7 +1143,49 @@ watcher.Start();
 
 ---
 
-## 16. API Reference
+## 16. Testing
+
+The SDK ships with a unit test suite for `ThinkGearParser` — the packet parser that runs identically on both BLE and BT Classic transports. These tests require no hardware or Bluetooth adapter.
+
+### Running the tests
+
+```bash
+dotnet test NeuroSky.Tests/NeuroSky.Tests.csproj
+```
+
+Or from the solution root:
+
+```bash
+dotnet test
+```
+
+### What is covered
+
+| Test | Description |
+|---|---|
+| `ParseESense_0xEA` | Attention, Meditation, PoorSignal extraction |
+| `ParseESense_0xEA_TooShort` | Short packet → returns null |
+| `ParseESense_0xEB` | Delta, Theta, LowAlpha, HighAlpha extraction |
+| `ParseESense_0xEC` | LowBeta, HighBeta, LowGamma, MidGamma extraction |
+| `ParseRawEeg_Returns10Samples` | 20-byte raw EEG → 10 signed int samples |
+| `ParseRawEeg_SignedConversion` | Values > 32768 converted to negative |
+| `ParseRawEeg_TooShort` | Short packet → returns null |
+| `Parse_UnknownUuid` | Unknown UUID → returns null |
+| `ParseByte_ValidPacket` | BT Classic serial packet — Attention/Meditation |
+| `ParseByte_InvalidChecksum` | Wrong checksum → returns null |
+| `ParseByte_PoorSignalCode` | BT Classic PoorSignal (code 0x02) |
+| `SignalQuality_Thresholds` | 200/100/25/0 → NoSignal/Poor/Fair/Good |
+
+### Test location
+
+```
+NeuroSky.Tests/
+└── ThinkGearParserTests.cs
+```
+
+---
+
+## 17. API Reference
 
 ### `NeuroSkySdk`
 
