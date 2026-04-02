@@ -3,6 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/NeuroSky.MindWave.Sdk)](https://www.nuget.org/packages/NeuroSky.MindWave.Sdk)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/NeuroSky.MindWave.Sdk)](https://www.nuget.org/packages/NeuroSky.MindWave.Sdk)
 [![C#](https://img.shields.io/badge/C%23-12-239120?logo=csharp&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/csharp/)
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via WinRT, no TGC dependency.
