@@ -45,7 +45,7 @@ This SDK eliminates TGC entirely by communicating directly with the MindWave Mob
 |---|---|
 | No TGC dependency | Communicates with hardware directly via WinRT |
 | BLE + BT Classic | Supports both Bluetooth transports |
-| Developer-selectable transport | `TransportMode.Auto / Ble / BtClassic` |
+| Developer-selectable transport | `TransportMode.Ble` (default) or `TransportMode.BtClassic` |
 | Async stream API | `IAsyncEnumerable<BrainWaveData>` — native `await foreach` |
 | Built-in Simulator | Full data simulation without any hardware |
 | .NET 8 / C# 12 | Modern language features, nullable annotations |
@@ -131,7 +131,7 @@ Both paths produce identical `BrainWaveData` output. The parsing layer is shared
 |---|---|---|
 | Windows | Windows 10 version 1903 (build 18362) | WinRT BLE GATT requires 1903+ |
 | .NET runtime | .NET 8.0 | Must be installed on target machine |
-| Bluetooth adapter | BLE-capable adapter | For `TransportMode.Ble` or `Auto` |
+| Bluetooth adapter | BLE-capable adapter | For `TransportMode.Ble` (default) |
 | Bluetooth adapter | Classic BT adapter | For `TransportMode.BtClassic` |
 | Device pairing | Not required for BLE | Required for BT Classic |
 
@@ -232,7 +232,7 @@ Console.CancelKeyPress += (_, e) =>
 
 // Step 4: Connect to the headset.
 // Replace with your MindWave Mobile's actual MAC address.
-// Default mode is Auto: tries BLE first, falls back to BT Classic.
+// Default mode is BLE. Pass TransportMode.BtClassic for BT Classic.
 // See Section 14 for how to find your MAC address.
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
 
@@ -269,50 +269,25 @@ await foreach (var data in sdk.DataStream(cts.Token))
 
 ## 6. Connection Modes (TransportMode)
 
-The `TransportMode` enum gives you explicit control over which Bluetooth protocol the SDK uses to communicate with the MindWave Mobile headset. Different modes suit different development scenarios.
+The `TransportMode` enum gives you explicit control over which Bluetooth protocol the SDK uses to communicate with the MindWave Mobile headset.
 
 ### Overview
 
 ```csharp
 public enum TransportMode
 {
-    Auto,       // BLE first → BT Classic fallback after 5 seconds (default)
-    Ble,        // BLE only — no Windows pairing required
-    BtClassic   // BT Classic only — requires Windows Bluetooth pairing
+    Ble,        // BLE — no Windows pairing required (default)
+    BtClassic   // BT Classic — requires Windows Bluetooth pairing
 }
 ```
 
 ---
 
-### TransportMode.Auto (default)
+### TransportMode.Ble (default)
 
 ```csharp
 // Both lines are equivalent:
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.Auto);
-```
-
-**How it works:**
-
-1. The SDK starts a BLE GATT scan and connection attempt
-2. A 5-second internal timeout starts simultaneously
-3. If BLE connects within 5 seconds → uses BLE for the session
-4. If BLE does not connect within 5 seconds → automatically cancels the BLE attempt and starts a BT Classic (RFCOMM) connection
-5. Regardless of which transport is used, `DataStream()` behaves identically
-
-**When to use Auto:**
-
-- You don't know in advance whether the user has the device paired or not
-- You want maximum compatibility across different Windows Bluetooth adapter types
-- You are building a general-purpose application and don't want to expose transport details to end users
-
-**Tradeoff:** In environments where BLE is not supported by the adapter, Auto will always wait 5 seconds before falling back. If BT Classic is your intended transport, use `TransportMode.BtClassic` directly to save that delay.
-
----
-
-### TransportMode.Ble
-
-```csharp
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.Ble);
 ```
 
@@ -810,8 +785,7 @@ try
 }
 catch (OperationCanceledException)
 {
-    // The CancellationToken was triggered before connection completed,
-    // OR the 5-second Auto timeout fired (Auto mode only).
+    // The CancellationToken was triggered before connection completed.
     Console.WriteLine("Connection cancelled or timed out.");
 }
 catch (UnauthorizedAccessException)
@@ -840,7 +814,7 @@ while (!cts.Token.IsCancellationRequested)
     try
     {
         Console.WriteLine("Connecting to MindWave Mobile...");
-        await sdk.ConnectAsync(address, TransportMode.Auto, cts.Token);
+        await sdk.ConnectAsync(address, TransportMode.Ble, cts.Token);
         Console.WriteLine("Connected. Streaming data...");
 
         await foreach (var data in sdk.DataStream(cts.Token))
@@ -1116,7 +1090,7 @@ watcher.Start();
 | Symptom | Likely cause | Solution |
 |---|---|---|
 | `ConnectionState.Error` immediately on BLE | No BLE adapter found | Open Device Manager → Bluetooth → confirm adapter is present and enabled |
-| `Auto` mode always waits 5 seconds before connecting | BLE attempt fails silently | Use `TransportMode.BtClassic` if you've already paired, or check BLE adapter |
+| BLE connect hangs indefinitely | Device not found or BLE adapter issue | Check BLE adapter in Device Manager; use `TransportMode.BtClassic` if device is already paired |
 | `BtClassic` fails with access denied or not found | Device not paired | Pair via Settings → Bluetooth & other devices first |
 | `ConnectAsync` never returns (hangs indefinitely) | Bluetooth adapter frozen | Disable and re-enable Bluetooth adapter in Device Manager |
 | Connection succeeds but `DataStream` yields no items | Handshake not sent | This is an SDK internal issue; file a bug report on GitHub |
@@ -1237,8 +1211,7 @@ Controls which Bluetooth protocol `ConnectAsync` uses.
 
 | Value | Behavior | Pairing required? |
 |---|---|---|
-| `Auto` | BLE first; falls back to BT Classic after 5 seconds | No (BLE path) / Yes (BT Classic fallback) |
-| `Ble` | BLE GATT only | No |
+| `Ble` | BLE GATT only (default) | No |
 | `BtClassic` | RFCOMM SPP only | Yes |
 
 ---

@@ -71,7 +71,7 @@ sdk.StateChanged += (_, state) => Console.WriteLine($"[State] {state}");
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-// Connect — BLE first, falls back to BT Classic automatically
+// Connect — BLE by default
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
 
 // Set notch filter for your region (removes power-line noise)
@@ -107,16 +107,12 @@ Choose how to connect via the `TransportMode` parameter:
 
 | Mode | Behavior | Pairing required? |
 |---|---|---|
-| `TransportMode.Auto` | BLE first; auto-falls back to BT Classic after 5 sec (default) | No |
-| `TransportMode.Ble` | BLE only — fastest, no pairing needed | No |
-| `TransportMode.BtClassic` | BT Classic only — more stable in noisy RF environments | Yes |
+| `TransportMode.Ble` | BLE — fastest, no pairing needed (default) | No |
+| `TransportMode.BtClassic` | BT Classic — more stable in noisy RF environments | Yes |
 
 ```csharp
-// Auto (default)
+// BLE (default)
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
-
-// BLE only (no pairing required)
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.Ble);
 
 // BT Classic only — pair the device first in Windows Settings
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
@@ -189,7 +185,7 @@ await sdk.SendCommandAsync(NeuroSkyCommand.StopRawEeg);
 
 ```
 NeuroSky.Sdk/
-├── NeuroSkySdk.cs              Entry point (BLE first + BT Classic fallback)
+├── NeuroSkySdk.cs              Entry point (BLE by default)
 ├── NeuroSkyUuid.cs             BLE UUID constants, command byte constants
 ├── Model/
 │   └── BrainWaveData.cs        EEG data model
@@ -218,7 +214,7 @@ dotnet run --project NeuroSky.Sample
 ### v2.0.0
 - WinRT BLE GATT implementation (`Windows.Devices.Bluetooth`)
 - WinRT RFCOMM SPP implementation (`Windows.Devices.Bluetooth.Rfcomm`)
-- `TransportMode` enum: Auto (BLE→BT fallback), Ble only, BtClassic only
+- `TransportMode` enum: Ble (default), BtClassic
 - `IAsyncEnumerable<BrainWaveData>` stream API
 - Simulator modes: Random / Focused / Relaxed / PoorSignal
 - .NET 8, C# 12

@@ -26,9 +26,7 @@ public enum ConnectionState
 
 public enum TransportMode
 {
-    /// <summary>BLE first, falls back to BT Classic automatically.</summary>
-    Auto,
-    /// <summary>BLE only. No pairing required.</summary>
+    /// <summary>BLE only. No pairing required. Default.</summary>
     Ble,
     /// <summary>BT Classic only. Requires Windows pairing.</summary>
     BtClassic
