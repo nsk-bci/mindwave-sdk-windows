@@ -10,6 +10,10 @@ Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via
 
 ## Getting Started
 
+> [!TIP]
+> **Before diving into the steps — read the [Developer Guide (PDF)](docs/developer-guide.pdf) first.**  
+> It covers the full connection flow, BLE vs BT Classic internals, signal quality handling, packet timing, advanced patterns, and the complete API reference. Most integration questions are answered there.
+
 ### Step 1 — Add the NuGet package
 
 **Visual Studio — Package Manager UI**
@@ -87,8 +91,6 @@ await foreach (var data in sdk.DataStream(cts.Token))
 ```
 
 That's it — four steps from zero to streaming EEG data.
-
-> **Need more detail?** See the full [Developer Guide](docs/developer-guide.pdf) for architecture, all connection modes, signal quality handling, advanced patterns, and the complete API reference.
 
 ---
 
