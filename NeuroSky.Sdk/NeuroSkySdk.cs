@@ -1,5 +1,6 @@
 using NeuroSky.Sdk.Model;
 using NeuroSky.Sdk.Transport;
+using Windows.Devices.Bluetooth.Advertisement;
 
 namespace NeuroSky.Sdk;
 
@@ -61,6 +62,41 @@ public sealed class NeuroSkySdk : IAsyncDisposable
                 await _ble.ConnectAsync(deviceAddress, ct);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Scans for a MindWave headset by name and returns its MAC address.
+    /// Cache the result locally — repeat scans add latency on every launch.
+    /// </summary>
+    /// <param name="deviceName">BLE advertisement name to match (e.g. "MindWave Mobile")</param>
+    /// <param name="timeoutMs">Scan timeout in milliseconds (default: 10 000)</param>
+    /// <returns>MAC address string "AA:BB:CC:DD:EE:FF", or <c>null</c> if not found within timeout.</returns>
+    public async Task<string?> FindDeviceAddressAsync(string deviceName, int timeoutMs = 10_000, CancellationToken ct = default)
+    {
+        var tcs = new TaskCompletionSource<string?>();
+        var watcher = new BluetoothLEAdvertisementWatcher();
+
+        watcher.Received += (_, args) =>
+        {
+            if (args.Advertisement.LocalName == deviceName)
+            {
+                ulong addr = args.BluetoothAddress;
+                var mac = string.Format("{0:X2}:{1:X2}:{2:X2}:{3:X2}:{4:X2}:{5:X2}",
+                    (addr >> 40) & 0xFF, (addr >> 32) & 0xFF, (addr >> 24) & 0xFF,
+                    (addr >> 16) & 0xFF, (addr >> 8) & 0xFF, addr & 0xFF);
+                watcher.Stop();
+                tcs.TrySetResult(mac);
+            }
+        };
+
+        watcher.Stopped += (_, _) => tcs.TrySetResult(null);
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(timeoutMs);
+        linked.Token.Register(() => { watcher.Stop(); tcs.TrySetResult(null); });
+
+        watcher.Start();
+        return await tcs.Task;
     }
 
     public async Task DisconnectAsync() => await _active.DisconnectAsync();

@@ -1014,6 +1014,62 @@ var consumer = Task.Run(async () =>
 await Task.WhenAll(producer, consumer);
 ```
 
+### Working with DataStream — Packet Timing and Common Pitfalls
+
+#### Packet timing
+
+In BLE mode, two characteristics transmit packets at different rates:
+
+| Characteristic | Fields | Rate |
+|---|---|---|
+| eSense `039afff8` | `Attention`, `Meditation`, EEG bands | ~1 Hz |
+| RawEEG `039afff4` | `RawEeg` (10 samples) | ~51 Hz (512 Hz ÷ 10) |
+
+`ThinkGearParser` accumulates state across packets. Regardless of which characteristic triggered the emit, each `BrainWaveData` object contains the **latest accumulated value of every field**. You will receive ~51 packets/second where `RawEeg` is populated, and ~1 packet/second where `Attention`/`Meditation` are updated.
+
+#### Caution — attention-based filter
+
+A common mistake is filtering on `Attention > 0`:
+
+```csharp
+// Wrong — drops all packets in RawEEG-only sessions
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.Attention == 0) continue;  // Attention is 0 when eSense is off
+    // ...
+}
+```
+
+If `StopESense` is sent (or `StartESense` is never sent), the device does not transmit attention data. `Attention` stays at `0` permanently and the guard above silently drops every packet.
+
+**Correct patterns:**
+
+```csharp
+// eSense session — filter by signal quality
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.SignalQuality == SignalQuality.NoSignal) continue;
+    Console.WriteLine($"Attention: {data.Attention}");
+}
+
+// RawEEG-only session
+await sdk.SendCommandAsync(NeuroSkyCommand.StopEsense);
+await sdk.SendCommandAsync(NeuroSkyCommand.StartRawEeg);
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.RawEeg.Count > 0)
+        foreach (var sample in data.RawEeg) ProcessRawSample(sample);
+}
+
+// eSense + RawEEG simultaneously — process only populated fields per packet
+await sdk.SendCommandAsync(NeuroSkyCommand.StartRawEeg);  // eSense active by default
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.RawEeg.Count > 0) UpdateRawEegChart(data.RawEeg);
+    if (data.Attention > 0)   UpdateEsenseUI(data);
+}
+```
+
 ---
 
 ## 14. Finding Your Device MAC Address
@@ -1056,30 +1112,48 @@ If the device is not yet paired and you want to scan for its MAC address without
 4. Look for a device named "MindWave Mobile" in the scan results
 5. The address shown is your MAC address
 
-### Method 4 — From your application at runtime
+### Method 4 — `FindDeviceAddressAsync()` (recommended for applications)
 
-If you want your application to discover the device automatically (without the user entering a MAC address), you can implement a BLE scan using the same WinRT APIs:
+The SDK provides a built-in BLE scan that resolves a device name to a MAC address. Call this once on first launch, cache the result, and skip the scan on subsequent launches.
 
 ```csharp
-// Example: scan for MindWave Mobile devices automatically
-using Windows.Devices.Bluetooth.Advertisement;
+await using var sdk = new NeuroSkySdk();
 
-var watcher = new BluetoothLEAdvertisementWatcher();
-watcher.Received += (_, args) =>
+// Try cache first; fall back to BLE scan (up to 10 s)
+var cached = Properties.Settings.Default.DeviceMac;
+var address = !string.IsNullOrEmpty(cached)
+    ? cached
+    : await sdk.FindDeviceAddressAsync("MindWave Mobile");
+
+if (address is null)
 {
-    var name = args.Advertisement.LocalName;
-    if (name.Contains("MindWave", StringComparison.OrdinalIgnoreCase))
-    {
-        // args.BluetoothAddress is a ulong — convert to MAC string:
-        var addr = args.BluetoothAddress;
-        var mac = string.Join(":", BitConverter.GetBytes(addr)
-            .Take(6).Reverse()
-            .Select(b => b.ToString("X2")));
-        Console.WriteLine($"Found: {name} at {mac}");
-    }
-};
-watcher.Start();
+    Console.WriteLine("Device not found within timeout — check power and BLE adapter.");
+    return;
+}
+
+// Cache for next launch — avoids the scan delay
+Properties.Settings.Default.DeviceMac = address;
+Properties.Settings.Default.Save();
+
+await sdk.ConnectAsync(address);
 ```
+
+**Signature:**
+
+```csharp
+Task<string?> FindDeviceAddressAsync(
+    string deviceName,
+    int    timeoutMs = 10_000,
+    CancellationToken ct = default)
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `deviceName` | — | BLE advertisement name to match (exact, case-sensitive) |
+| `timeoutMs` | `10000` | How long to scan before returning `null` |
+| `ct` | — | Cancellation token; cancels the scan immediately |
+
+Returns the MAC address as `"AA:BB:CC:DD:EE:FF"`, or `null` if not found within the timeout.
 
 ---
 
@@ -1174,6 +1248,7 @@ public sealed class NeuroSkySdk : IAsyncDisposable
 | `State` | `ConnectionState` | Current connection state (property, get-only) |
 | `StateChanged` | `event EventHandler<ConnectionState>` | Fires whenever the state changes |
 | `ConnectAsync(string, TransportMode, CancellationToken)` | `Task` | Initiate connection to a MindWave Mobile headset |
+| `FindDeviceAddressAsync(string, int, CancellationToken)` | `Task<string?>` | Scan BLE advertisements; resolve device name → MAC address |
 | `DisconnectAsync()` | `Task` | Gracefully disconnect the active transport |
 | `DataStream(CancellationToken)` | `IAsyncEnumerable<BrainWaveData>` | Infinite async stream of EEG packets |
 | `SendCommandAsync(byte)` | `Task` | Send a control byte to the headset |

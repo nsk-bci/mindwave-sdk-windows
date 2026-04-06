@@ -1,0 +1,31 @@
+<linker>
+  <!--
+    WinRT BLE GATT callbacks are invoked by the Windows Bluetooth stack via
+    internal reflection-like dispatch. Without these roots, the .NET trimmer
+    silently removes the handler methods in self-contained / AOT builds,
+    causing BLE data to stop arriving with no error — identical to the
+    Android R8 symptom documented in consumer-rules.pro.
+  -->
+  <assembly fullname="NeuroSky.Sdk">
+
+    <!-- BleTransport — preserve GATT characteristic notification handler -->
+    <type fullname="NeuroSky.Sdk.Transport.BleTransport" preserve="all" />
+
+    <!-- BtClassicTransport — preserve RFCOMM stream reader thread entry -->
+    <type fullname="NeuroSky.Sdk.Transport.BtClassicTransport" preserve="all" />
+
+    <!-- Parser — preserve all parser logic (called from preserved transports) -->
+    <type fullname="NeuroSky.Sdk.Parser.ThinkGearParser" preserve="all" />
+
+    <!-- Public API surface — preserve for consumers that reference by name -->
+    <type fullname="NeuroSky.Sdk.NeuroSkySdk" preserve="all" />
+    <type fullname="NeuroSky.Sdk.Model.BrainWaveData" preserve="all" />
+    <type fullname="NeuroSky.Sdk.Model.SignalQuality" preserve="all" />
+    <type fullname="NeuroSky.Sdk.Transport.ConnectionState" preserve="all" />
+    <type fullname="NeuroSky.Sdk.Transport.TransportMode" preserve="all" />
+    <type fullname="NeuroSky.Sdk.Transport.ITransport" preserve="all" />
+    <type fullname="NeuroSky.Sdk.NeuroSkyUuid" preserve="all" />
+    <type fullname="NeuroSky.Sdk.NeuroSkyCommand" preserve="all" />
+
+  </assembly>
+</linker>

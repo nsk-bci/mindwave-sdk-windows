@@ -163,6 +163,85 @@ await foreach (var data in simulator.DataStream(cts.Token))
 | `EyeBlink` | `int` | 0~255 | Eye blink intensity |
 | `SignalQuality` | `SignalQuality` | enum | NoSignal/Poor/Fair/Good |
 
+## Finding Your Device Address
+
+`ConnectAsync()` takes a Bluetooth MAC address. Use `FindDeviceAddressAsync()` once on first launch to discover it, then store it (e.g., in app settings) for faster subsequent connections.
+
+```csharp
+await using var sdk = new NeuroSkySdk();
+
+// Discover by name — scans BLE advertisements for up to 10 s
+var cached = Properties.Settings.Default.DeviceMac;
+var address = !string.IsNullOrEmpty(cached)
+    ? cached
+    : await sdk.FindDeviceAddressAsync("MindWave Mobile");
+
+if (address is null)
+{
+    Console.WriteLine("Device not found — check power and BLE adapter.");
+    return;
+}
+
+Properties.Settings.Default.DeviceMac = address;
+Properties.Settings.Default.Save();   // cache — skips scan next launch
+
+await sdk.ConnectAsync(address);
+```
+
+## Working with DataStream
+
+### Packet timing
+
+In BLE mode, two characteristics transmit packets at different rates.
+
+| Characteristic | Fields | Rate |
+|---|---|---|
+| eSense `039afff8` | Attention, Meditation, EEG bands | ~1 Hz |
+| RawEEG `039afff4` | `RawEeg` (10 samples) | ~51 Hz (512 Hz ÷ 10) |
+
+`ThinkGearParser` accumulates state. Regardless of which characteristic triggered the emit, each `BrainWaveData` object contains the latest accumulated value of every field.
+
+### Caution — attention-based filter
+
+```csharp
+// Wrong pattern — drops all packets in RawEEG-only sessions
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.Attention == 0) continue;  // Attention is always 0 when eSense is off
+    // ...
+}
+```
+
+If `StopESense` is sent or `StartESense` is never called, the device does not transmit attention data. `Attention` stays at 0 and this guard silently drops every packet.
+
+**Correct patterns:**
+
+```csharp
+// eSense session — filter by signal quality, not value
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.SignalQuality == SignalQuality.NoSignal) continue;
+    Console.WriteLine($"Attention: {data.Attention}");
+}
+
+// RawEEG-only session
+await sdk.SendCommandAsync(NeuroSkyCommand.StopESense);
+await sdk.SendCommandAsync(NeuroSkyCommand.StartRawEeg);
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.RawEeg.Count > 0)
+        foreach (var sample in data.RawEeg) ProcessRawSample(sample);
+}
+
+// eSense + RawEEG simultaneously — process only the populated fields in each packet
+await sdk.SendCommandAsync(NeuroSkyCommand.StartRawEeg);  // eSense is active by default
+await foreach (var data in sdk.DataStream(ct))
+{
+    if (data.RawEeg.Count > 0)  UpdateRawEegChart(data.RawEeg);
+    if (data.Attention > 0)     UpdateEsenseUI(data);
+}
+```
+
 ## Commands
 
 ```csharp

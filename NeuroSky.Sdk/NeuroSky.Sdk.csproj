@@ -20,6 +20,11 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+    <!-- Trimming support for self-contained / AOT publish.
+         Symptom of missing rules: BLE data stops silently in trimmed builds. -->
+    <IsTrimmable>true</IsTrimmable>
+    <TrimmerRootDescriptor>TrimmerRootDescriptor.xml</TrimmerRootDescriptor>
   </PropertyGroup>
 
   <ItemGroup>
