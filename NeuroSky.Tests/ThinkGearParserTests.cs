@@ -1,6 +1,4 @@
 using NeuroSky.Sdk;
-using NeuroSky.Sdk.Model;
-using NeuroSky.Sdk.Parser;
 using Xunit;
 
 namespace NeuroSky.Tests;

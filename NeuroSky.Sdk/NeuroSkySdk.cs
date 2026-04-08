@@ -1,5 +1,3 @@
-using NeuroSky.Sdk.Model;
-using NeuroSky.Sdk.Transport;
 using Windows.Devices.Bluetooth.Advertisement;
 
 namespace NeuroSky.Sdk;

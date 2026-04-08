@@ -4,6 +4,24 @@ All notable changes to the NeuroSky MindWave Mobile Windows SDK are documented h
 
 ---
 
+## v2.0.1
+
+### Fixed
+
+- **Namespace flattening** — all SDK types are now in the single `NeuroSky.Sdk` namespace.  
+  Previously, types were split across sub-namespaces that were undocumented and required extra `using` directives:
+
+  | Type | Before | After |
+  |---|---|---|
+  | `BrainWaveData`, `SignalQuality` | `NeuroSky.Sdk.Model` | `NeuroSky.Sdk` |
+  | `ConnectionState`, `TransportMode`, `ITransport` | `NeuroSky.Sdk.Transport` | `NeuroSky.Sdk` |
+  | `SimulatorTransport` | `NeuroSky.Sdk.Simulator` | `NeuroSky.Sdk` |
+  | `ThinkGearParser` | `NeuroSky.Sdk.Parser` | `NeuroSky.Sdk` |
+
+  **Migration:** remove any `using NeuroSky.Sdk.Model;`, `using NeuroSky.Sdk.Transport;`, `using NeuroSky.Sdk.Simulator;`, `using NeuroSky.Sdk.Parser;` — `using NeuroSky.Sdk;` alone is sufficient.
+
+---
+
 ## v2.0.0
 
 Complete rewrite — TGC eliminated, WinRT Bluetooth stack, modern async API.

@@ -1,13 +1,11 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using NeuroSky.Sdk.Model;
-using NeuroSky.Sdk.Parser;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Rfcomm;
 using Windows.Networking.Sockets;
 using Windows.Storage.Streams;
 
-namespace NeuroSky.Sdk.Transport;
+namespace NeuroSky.Sdk;
 
 public sealed class BtClassicTransport : ITransport
 {

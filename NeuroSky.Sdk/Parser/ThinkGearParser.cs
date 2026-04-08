@@ -1,6 +1,4 @@
-using NeuroSky.Sdk.Model;
-
-namespace NeuroSky.Sdk.Parser;
+namespace NeuroSky.Sdk;
 
 /// <summary>
 /// NeuroSky ThinkGear packet parser.

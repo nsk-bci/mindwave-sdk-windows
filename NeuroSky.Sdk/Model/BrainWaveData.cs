@@ -1,4 +1,4 @@
-namespace NeuroSky.Sdk.Model;
+namespace NeuroSky.Sdk;
 
 public record BrainWaveData
 {

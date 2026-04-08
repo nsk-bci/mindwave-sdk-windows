@@ -3,7 +3,7 @@ title: NeuroSky MindWave Mobile Windows SDK — Developer Guide
 ---
 
 # NeuroSky MindWave Mobile Windows SDK
-## Developer Guide · v2.0.0
+## Developer Guide · v2.0.1
 
 ---
 
@@ -174,7 +174,7 @@ This SDK is designed and tested for the **NeuroSky MindWave Mobile 2** (sometime
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.0" />
+    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.1" />
   </ItemGroup>
 </Project>
 ```
@@ -182,7 +182,7 @@ This SDK is designed and tested for the **NeuroSky MindWave Mobile 2** (sometime
 ### Option C — .NET CLI
 
 ```bash
-dotnet add package NeuroSky.MindWave.Sdk --version 2.0.0
+dotnet add package NeuroSky.MindWave.Sdk --version 2.0.1
 ```
 
 ### Verify installation
@@ -207,7 +207,6 @@ The following example demonstrates a complete minimal application that connects 
 
 ```csharp
 using NeuroSky.Sdk;
-using NeuroSky.Sdk.Transport;
 
 // Step 1: Create the SDK instance.
 // NeuroSkySdk is IAsyncDisposable — use 'await using' so it disconnects
@@ -699,7 +698,7 @@ The `SimulatorTransport` generates realistic synthetic EEG data without any phys
 ### Basic usage
 
 ```csharp
-using NeuroSky.Sdk.Simulator;
+using NeuroSky.Sdk;
 
 // Create simulator
 var simulator = new SimulatorTransport();

@@ -24,7 +24,7 @@ Search: NeuroSky.MindWave.Sdk → Install
 
 **Edit `.csproj` directly (recommended)**
 ```xml
-<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.0" />
+<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.1" />
 ```
 
 **.NET CLI**
@@ -44,7 +44,7 @@ WinRT Bluetooth APIs require a Windows-specific TFM. Open your `.csproj` and con
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.0" />
+    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.1" />
   </ItemGroup>
 </Project>
 ```
@@ -67,7 +67,6 @@ Get-PnpDevice -Class Bluetooth | Where-Object { $_.FriendlyName -like "*MindWave
 
 ```csharp
 using NeuroSky.Sdk;
-using NeuroSky.Sdk.Transport;
 
 await using var sdk = new NeuroSkySdk();
 sdk.StateChanged += (_, state) => Console.WriteLine($"[State] {state}");
@@ -123,7 +122,7 @@ await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
 ## Simulator (without a real device)
 
 ```csharp
-using NeuroSky.Sdk.Simulator;
+using NeuroSky.Sdk;
 
 var simulator = new SimulatorTransport();
 simulator.SetMode(SimulatorTransport.Mode.Focused);
@@ -291,6 +290,9 @@ dotnet run --project NeuroSky.Sample
 ```
 
 ## Changelog
+
+### v2.0.1
+- **Fix:** all types flattened into `NeuroSky.Sdk` — `using NeuroSky.Sdk;` is now sufficient
 
 ### v2.0.0
 - WinRT BLE GATT implementation (`Windows.Devices.Bluetooth`)

@@ -1,6 +1,4 @@
-using NeuroSky.Sdk.Model;
-
-namespace NeuroSky.Sdk.Transport;
+namespace NeuroSky.Sdk;
 
 public interface ITransport : IAsyncDisposable
 {

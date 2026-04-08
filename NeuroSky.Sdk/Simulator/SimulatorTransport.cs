@@ -1,8 +1,6 @@
 using System.Runtime.CompilerServices;
-using NeuroSky.Sdk.Model;
-using NeuroSky.Sdk.Transport;
 
-namespace NeuroSky.Sdk.Simulator;
+namespace NeuroSky.Sdk;
 
 public sealed class SimulatorTransport : ITransport
 {

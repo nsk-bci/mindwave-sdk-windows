@@ -1,5 +1,4 @@
 using NeuroSky.Sdk;
-using NeuroSky.Sdk.Simulator;
 
 // ── Simulator test ────────────────────────────────────────────────────────────
 Console.WriteLine("=== NeuroSky MindWave Windows SDK - Simulator ===");
