@@ -14,7 +14,7 @@ public sealed class BleTransport : ITransport
     private GattCharacteristic? _rawEegChar;
     private GattCharacteristic? _handshakeChar;
     private readonly ThinkGearParser _parser = new();
-    private readonly Channel<BrainWaveData> _channel = Channel.CreateUnbounded<BrainWaveData>();
+    private Channel<BrainWaveData> _channel = Channel.CreateUnbounded<BrainWaveData>();
 
     public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
     public event EventHandler<ConnectionState>? StateChanged;
@@ -28,6 +28,8 @@ public sealed class BleTransport : ITransport
 
     public async Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
     {
+        // 재연결 시 새 채널 생성
+        _channel = Channel.CreateUnbounded<BrainWaveData>();
         SetState(ConnectionState.Scanning);
 
         // MAC address string → ulong
@@ -76,20 +78,45 @@ public sealed class BleTransport : ITransport
         // Handshake — start receiving eSense data
         await SendHandshakeAsync(NeuroSkyCommand.StartESense);
         SetState(ConnectionState.Connected);
+
+        // 링크 드롭 감지
+        _device.ConnectionStatusChanged += OnConnectionStatusChanged;
+    }
+
+    private void OnConnectionStatusChanged(BluetoothLEDevice sender, object args)
+    {
+        if (sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
+        {
+            _channel.Writer.TryComplete();
+            SetState(ConnectionState.Disconnected);
+        }
     }
 
     public async Task DisconnectAsync()
     {
         if (_eSenseChar is not null)
+        {
+            _eSenseChar.ValueChanged -= OnCharacteristicValueChanged;
             await _eSenseChar.WriteClientCharacteristicConfigurationDescriptorAsync(
                 GattClientCharacteristicConfigurationDescriptorValue.None);
+        }
 
         if (_rawEegChar is not null)
+        {
+            _rawEegChar.ValueChanged -= OnCharacteristicValueChanged;
             await _rawEegChar.WriteClientCharacteristicConfigurationDescriptorAsync(
                 GattClientCharacteristicConfigurationDescriptorValue.None);
+        }
 
-        _device?.Dispose();
-        _device = null;
+        if (_device is not null)
+        {
+            _device.ConnectionStatusChanged -= OnConnectionStatusChanged;
+            _device.Dispose();
+            _device = null;
+        }
+        _eSenseChar = null;
+        _rawEegChar = null;
+        _handshakeChar = null;
         _channel.Writer.TryComplete();
         SetState(ConnectionState.Disconnected);
     }

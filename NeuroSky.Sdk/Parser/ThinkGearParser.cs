@@ -58,7 +58,7 @@ public sealed class ThinkGearParser
         for (int i = 0; i < 10; i++)
         {
             int raw = ((bytes[i * 2] & 0xFF) << 8) | (bytes[i * 2 + 1] & 0xFF);
-            if (raw > 32768) raw -= 65536;
+            if (raw >= 32768) raw -= 65536;
             samples[i] = raw;
         }
 
@@ -132,24 +132,26 @@ public sealed class ThinkGearParser
             int code = payload[i++] & 0xFF;
             switch (code)
             {
-                case 0x02: _current = _current with { PoorSignal = payload[i++] & 0xFF }; break;
-                case 0x04: _current = _current with { Attention  = payload[i++] & 0xFF }; break;
-                case 0x05: _current = _current with { Meditation = payload[i++] & 0xFF }; break;
-                case 0x16: _current = _current with { EyeBlink   = payload[i++] & 0xFF }; break;
+                case 0x02: if (i < payload.Length) _current = _current with { PoorSignal = payload[i++] & 0xFF }; break;
+                case 0x04: if (i < payload.Length) _current = _current with { Attention  = payload[i++] & 0xFF }; break;
+                case 0x05: if (i < payload.Length) _current = _current with { Meditation = payload[i++] & 0xFF }; break;
+                case 0x16: if (i < payload.Length) _current = _current with { EyeBlink   = payload[i++] & 0xFF }; break;
                 case 0x80:
                 {
+                    if (i >= payload.Length) break;
                     int len = payload[i++] & 0xFF;
-                    if (i + len <= payload.Length)
+                    if (i + len <= payload.Length && len >= 2)
                     {
                         int raw = ((payload[i] & 0xFF) << 8) | (payload[i + 1] & 0xFF);
-                        if (raw > 32768) raw -= 65536;
+                        if (raw >= 32768) raw -= 65536;
                         _current = _current with { RawEeg = [raw] };
-                        i += len;
                     }
+                    i += len;
                     break;
                 }
                 case 0x83:
                 {
+                    if (i >= payload.Length) break;
                     int len = payload[i++] & 0xFF;
                     if (i + len <= payload.Length && len >= 24)
                     {
@@ -168,7 +170,10 @@ public sealed class ThinkGearParser
                     }
                     break;
                 }
-                default: i++; break;
+                default:
+                    if (code >= 0x80) { if (i < payload.Length) { int len = payload[i++] & 0xFF; i += len; } }
+                    else              { if (i < payload.Length) i++; }
+                    break;
             }
         }
         return _current with { Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };

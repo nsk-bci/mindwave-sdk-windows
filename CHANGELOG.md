@@ -4,6 +4,20 @@ All notable changes to the NeuroSky MindWave Mobile Windows SDK are documented h
 
 ---
 
+## v2.0.2 — 2026-04-09
+
+### Fixed
+
+#### `ThinkGearParser` — BT Classic unknown extended code skip
+- `ParseSerialPayload()` `default` case가 이제 확장 코드(`>= 0x80`)를 올바르게 처리: 길이 바이트를 읽고 `len`만큼 추가 건너뜀
+- 이전에는 모든 미지 코드에서 인덱스를 1씩만 증가시켜, 인식하지 못한 확장 타입 코드에서 파서 위치 오동기 발생
+
+#### `ThinkGearParser` — BT Classic `0x83` bounds guard
+- `ParseSerialPayload()` `case 0x83` (EEG Power 24바이트 블록)에서 `len` 바이트 읽기 전 `if (i >= payload.Length) break` 추가
+- 이전에는 잘려진 페이로드에서 `IndexOutOfRangeException` 발생 가능
+
+---
+
 ## v2.0.1
 
 ### Fixed

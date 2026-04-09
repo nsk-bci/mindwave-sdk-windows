@@ -30,6 +30,7 @@ public sealed class NeuroSkySdk : IAsyncDisposable
     {
         _active = _ble;
         _ble.StateChanged += (_, s) => StateChanged?.Invoke(this, s);
+        _bt.StateChanged  += (_, s) => StateChanged?.Invoke(this, s);
     }
 
     /// <summary>Real-time EEG data stream.</summary>
@@ -50,13 +51,11 @@ public sealed class NeuroSkySdk : IAsyncDisposable
         {
             case TransportMode.BtClassic:
                 _active = _bt;
-                _bt.StateChanged += ForwardState;
                 await _bt.ConnectAsync(deviceAddress, ct);
                 break;
 
             default: // Ble
                 _active = _ble;
-                _ble.StateChanged += ForwardState;
                 await _ble.ConnectAsync(deviceAddress, ct);
                 break;
         }
@@ -82,8 +81,9 @@ public sealed class NeuroSkySdk : IAsyncDisposable
                 var mac = string.Format("{0:X2}:{1:X2}:{2:X2}:{3:X2}:{4:X2}:{5:X2}",
                     (addr >> 40) & 0xFF, (addr >> 32) & 0xFF, (addr >> 24) & 0xFF,
                     (addr >> 16) & 0xFF, (addr >> 8) & 0xFF, addr & 0xFF);
-                watcher.Stop();
-                tcs.TrySetResult(mac);
+                // TrySetResult 먼저 → Stop 나중: Stopped 이벤트가 null로 덮어쓰는 race 방지
+                if (tcs.TrySetResult(mac))
+                    watcher.Stop();
             }
         };
 
@@ -100,8 +100,6 @@ public sealed class NeuroSkySdk : IAsyncDisposable
     public async Task DisconnectAsync() => await _active.DisconnectAsync();
 
     public async Task SendCommandAsync(byte cmd) => await _active.SendCommandAsync(cmd);
-
-    private void ForwardState(object? sender, ConnectionState s) => StateChanged?.Invoke(this, s);
 
     public async ValueTask DisposeAsync() => await _active.DisposeAsync();
 }

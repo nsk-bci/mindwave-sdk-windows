@@ -13,7 +13,7 @@ public sealed class BtClassicTransport : ITransport
     private DataReader? _reader;
     private DataWriter? _writer;
     private readonly ThinkGearParser _parser = new();
-    private readonly Channel<BrainWaveData> _channel = Channel.CreateUnbounded<BrainWaveData>();
+    private Channel<BrainWaveData> _channel = Channel.CreateUnbounded<BrainWaveData>();
     private CancellationTokenSource? _readCts;
 
     public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
@@ -28,6 +28,8 @@ public sealed class BtClassicTransport : ITransport
 
     public async Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
     {
+        // 재연결 시 새 채널 생성
+        _channel = Channel.CreateUnbounded<BrainWaveData>();
         SetState(ConnectionState.Connecting);
         try
         {

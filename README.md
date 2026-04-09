@@ -24,7 +24,7 @@ Search: NeuroSky.MindWave.Sdk → Install
 
 **Edit `.csproj` directly (recommended)**
 ```xml
-<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.1" />
+<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.2" />
 ```
 
 **.NET CLI**
@@ -44,7 +44,7 @@ WinRT Bluetooth APIs require a Windows-specific TFM. Open your `.csproj` and con
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.1" />
+    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.2" />
   </ItemGroup>
 </Project>
 ```
@@ -290,6 +290,10 @@ dotnet run --project NeuroSky.Sample
 ```
 
 ## Changelog
+
+### v2.0.2
+- `ThinkGearParser` — BT Classic `default` case now correctly skips extended codes (`>= 0x80`) by reading `len` and skipping `len` bytes; previously caused parser desync
+- `ThinkGearParser` — BT Classic `case 0x83` bounds guard: prevents `IndexOutOfRangeException` on truncated payloads
 
 ### v2.0.1
 - **Fix:** all types flattened into `NeuroSky.Sdk` — `using NeuroSky.Sdk;` is now sufficient
