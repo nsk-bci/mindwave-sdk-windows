@@ -1,6 +1,36 @@
 ---
 title: NeuroSky MindWave Mobile Windows SDK — Developer Guide
+stylesheet: style.css
+pdf_options:
+  format: A4
+  margin: "0"
+  printBackground: true
+  displayHeaderFooter: false
 ---
+
+<div class="cover">
+  <div class="cover-top">
+    <svg class="cover-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="86" fill="none" stroke="#00C8FF" stroke-width="3"/>
+      <polyline
+        points="22,100 38,100 46,82 54,118 62,70 70,130 78,60 86,140 94,72 102,124 110,84 118,112 126,90 134,108 142,96 150,104 158,100 178,100"
+        fill="none" stroke="#00C8FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="cover-brand">NeuroSky</div>
+    <div class="cover-product">MindWave Mobile &middot; Windows SDK</div>
+    <div class="cover-title">Developer Guide</div>
+    <div class="cover-version">Version 2.0.3</div>
+    <div class="cover-date">May 2026</div>
+  </div>
+  <div class="cover-divider"></div>
+  <div class="cover-bottom">
+    <div class="cover-tagline">
+      Real-time EEG integration for Windows desktop applications<br/>
+      via WinRT Bluetooth LE &amp; RFCOMM &middot; Built on .NET 8 and C# 12
+    </div>
+  </div>
+  <div class="cover-footer">&copy; NeuroSky, Inc.</div>
+</div>
 
 # NeuroSky MindWave Mobile Windows SDK
 ## Developer Guide · v2.0.3
@@ -28,7 +58,7 @@ title: NeuroSky MindWave Mobile Windows SDK — Developer Guide
 17. [Testing](#17-testing)
 18. [API Reference](#18-api-reference)
 
----
+<div class="page-break"></div>
 
 ## 1. Overview
 

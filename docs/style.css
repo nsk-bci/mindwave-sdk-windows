@@ -1,0 +1,291 @@
+/* =============================================================
+   NeuroSky MindWave Mobile Windows SDK — Developer Guide
+   PDF stylesheet (consumed by md-to-pdf / Puppeteer)
+   ============================================================= */
+
+:root {
+  --navy:    #0F1E32;
+  --cyan:    #00C8FF;
+  --cyan-d:  #00A0CC;
+  --ink:     #1a1a1a;
+  --muted:   #6a6a6a;
+  --rule:    #e3e6ea;
+  --code-bg: #f5f7fa;
+  --code-fg: #1f4f8a;
+}
+
+/* ---------- PAGE LAYOUT (CSS Paged Media) ----------
+   Default pages: header text top-right, page counter bottom-center.
+   First page (cover): zero margins, header/footer suppressed.       */
+
+@page {
+  size: A4;
+  margin: 22mm 18mm 18mm 18mm;
+
+  @top-right {
+    content: "NeuroSky MindWave Mobile Windows SDK  \2014  Developer Guide  \00B7  v2.0.3";
+    color: #0F1E32;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: 600;
+    padding-bottom: 6mm;
+    border-bottom: 2px solid #00C8FF;
+    width: 174mm;
+    text-align: right;
+  }
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 8pt;
+    color: #888;
+    padding-top: 4mm;
+    border-top: 1px solid #e3e6ea;
+    width: 174mm;
+  }
+}
+
+@page :first {
+  margin: 0;
+  @top-right     { content: none; }
+  @bottom-center { content: none; }
+}
+
+/* ---------- BASE ---------- */
+body {
+  font-family: "Inter", -apple-system, "Segoe UI", "Helvetica Neue",
+               Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 10pt;
+  line-height: 1.55;
+  color: var(--ink);
+  margin: 0;
+}
+
+a { color: var(--cyan-d); text-decoration: none; }
+
+p { margin: 6pt 0; }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 14pt 0;
+}
+
+/* ---------- HEADINGS ---------- */
+h1, h2, h3, h4 {
+  color: var(--cyan-d);
+  font-weight: 700;
+  line-height: 1.25;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 22pt;
+  margin: 22pt 0 8pt;
+  padding-bottom: 4pt;
+  border-bottom: 3px solid var(--cyan);
+  display: inline-block;
+}
+
+h2 {
+  font-size: 14pt;
+  margin: 18pt 0 6pt;
+}
+
+h3 {
+  font-size: 11pt;
+  color: var(--navy);
+  margin: 12pt 0 4pt;
+}
+
+h4 {
+  font-size: 10pt;
+  color: var(--navy);
+  margin: 10pt 0 4pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* The top-most H1 (page title) is hidden because the cover supplies it */
+body > h1:first-of-type { display: none; }
+body > h2:first-of-type { display: none; }
+
+/* Manual page-break marker — used between TOC and section 1, and any
+   other place the markdown needs a hard page boundary. */
+.page-break {
+  page-break-after: always;
+  height: 0;
+}
+
+/* ---------- INLINE & BLOCK CODE ---------- */
+code {
+  font-family: "JetBrains Mono", "Consolas", "Menlo", monospace;
+  font-size: 8.8pt;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 1pt 4pt;
+  border-radius: 3px;
+}
+
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--cyan);
+  border-radius: 4px;
+  padding: 8pt 10pt;
+  font-size: 8.5pt;
+  line-height: 1.5;
+  overflow-x: auto;
+  page-break-inside: avoid;
+}
+pre code {
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+}
+
+/* ---------- TABLES ---------- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8pt 0 12pt;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+thead {
+  background: var(--navy);
+  color: #fff;
+}
+thead th {
+  padding: 7pt 9pt;
+  text-align: left;
+  font-weight: 600;
+  border: none;
+}
+tbody td {
+  padding: 6pt 9pt;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+tbody tr:nth-child(even) { background: #fafbfc; }
+
+/* ---------- LISTS ---------- */
+ul, ol { padding-left: 20pt; margin: 6pt 0; }
+li { margin: 2pt 0; }
+ul li::marker { color: var(--cyan); }
+ol li::marker { color: var(--cyan-d); font-weight: 600; }
+
+/* ---------- CALLOUT (blockquote) ---------- */
+blockquote {
+  background: #f1faff;
+  border-left: 4px solid var(--cyan);
+  margin: 10pt 0;
+  padding: 8pt 12pt;
+  color: #1a3a52;
+  font-size: 9.5pt;
+}
+blockquote p { margin: 4pt 0; }
+blockquote strong { color: var(--cyan-d); }
+
+/* =============================================================
+   COVER PAGE
+   ============================================================= */
+
+.cover {
+  /* On the first page @page rule applies margin: 0, so the cover
+     can fill the physical A4 page completely. */
+  background: var(--navy);
+  color: #fff;
+  page-break-after: always;
+  width: 210mm;
+  height: 297mm;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.cover-top {
+  flex: 1.4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40pt 30pt 20pt;
+}
+
+.cover-logo {
+  width: 130pt;
+  height: 130pt;
+  margin-bottom: 20pt;
+}
+
+.cover-brand {
+  font-size: 32pt;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.cover-product {
+  font-size: 12pt;
+  color: var(--cyan);
+  margin: 6pt 0 28pt;
+}
+
+.cover-title {
+  font-size: 42pt;
+  font-weight: 800;
+  margin: 0 0 18pt;
+  letter-spacing: -0.01em;
+}
+
+.cover-version {
+  display: inline-block;
+  background: var(--cyan);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 11pt;
+  padding: 4pt 18pt;
+  border-radius: 14pt;
+  letter-spacing: 0.02em;
+}
+
+.cover-date {
+  font-size: 9.5pt;
+  color: #8aa0b8;
+  margin-top: 12pt;
+}
+
+.cover-divider {
+  height: 4pt;
+  background: var(--cyan);
+}
+
+.cover-bottom {
+  flex: 1;
+  background:
+    radial-gradient(circle at 1px 1px, #cfd7df 1px, transparent 1px) 0 0 / 32pt 32pt,
+    #fff;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30pt 50pt;
+}
+
+.cover-tagline {
+  text-align: center;
+  font-size: 11pt;
+  color: #4a4a4a;
+  line-height: 1.65;
+  max-width: 70%;
+}
+
+.cover-footer {
+  background: var(--navy);
+  color: #6a8aa8;
+  text-align: center;
+  font-size: 8pt;
+  padding: 10pt 0;
+}
