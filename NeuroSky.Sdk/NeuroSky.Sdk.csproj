@@ -10,7 +10,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>NeuroSky.MindWave.Sdk</PackageId>
-    <Version>2.0.2</Version>
+    <Version>2.0.3</Version>
     <Authors>nsk-bci</Authors>
     <Description>Modern C# SDK for NeuroSky MindWave EEG headsets — BLE + BT Classic via WinRT, no TGC dependency</Description>
     <PackageTags>neurosky;mindwave;eeg;bci;ble;bluetooth;sdk</PackageTags>

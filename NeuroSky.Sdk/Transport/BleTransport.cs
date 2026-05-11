@@ -65,8 +65,10 @@ public sealed class BleTransport : ITransport
             }
         }
 
-        if (_eSenseChar is null)
+        if (_eSenseChar is null || _handshakeChar is null)
         {
+            // 핸드셰이크 캐릭터리스틱이 없으면 StartESense를 보낼 수 없어
+            // 데이터가 영원히 도착하지 않음 → Connected가 아닌 Error 상태가 맞다.
             SetState(ConnectionState.Error);
             return;
         }

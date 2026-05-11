@@ -24,7 +24,7 @@ Search: NeuroSky.MindWave.Sdk → Install
 
 **Edit `.csproj` directly (recommended)**
 ```xml
-<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.2" />
+<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.3" />
 ```
 
 **.NET CLI**
@@ -44,7 +44,7 @@ WinRT Bluetooth APIs require a Windows-specific TFM. Open your `.csproj` and con
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.2" />
+    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.3" />
   </ItemGroup>
 </Project>
 ```
@@ -290,6 +290,10 @@ dotnet run --project NeuroSky.Sample
 ```
 
 ## Changelog
+
+### v2.0.3
+- **Fix:** `TrimmerRootDescriptor.xml` updated to flattened `NeuroSky.Sdk` FQNs — previous entries still referenced the pre-v2.0.1 nested namespaces (`NeuroSky.Sdk.Transport.*`, `NeuroSky.Sdk.Parser.*`, `NeuroSky.Sdk.Model.*`), so the trimmer silently dropped BLE/BT/parser types in trimmed / AOT builds despite the descriptor being shipped
+- **Fix:** `BleTransport.ConnectAsync` no longer reports `Connected` when the handshake characteristic is missing — it now transitions to `Error` so the caller doesn't wait forever on a stream that will never emit
 
 ### v2.0.2
 - `ThinkGearParser` — BT Classic `default` case now correctly skips extended codes (`>= 0x80`) by reading `len` and skipping `len` bytes; previously caused parser desync

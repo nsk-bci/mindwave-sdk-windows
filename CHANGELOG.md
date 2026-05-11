@@ -4,6 +4,21 @@ All notable changes to the NeuroSky MindWave Mobile Windows SDK are documented h
 
 ---
 
+## v2.0.3 — 2026-05-11
+
+### Fixed
+
+#### `TrimmerRootDescriptor.xml` — v2.0.1 네임스페이스 평탄화 후속 누락
+- v2.0.1에서 모든 타입을 `NeuroSky.Sdk` 단일 네임스페이스로 평탄화했으나, 트리머 디스크립터는 여전히 옛 중첩 네임스페이스(`NeuroSky.Sdk.Transport.BleTransport`, `NeuroSky.Sdk.Parser.ThinkGearParser`, `NeuroSky.Sdk.Model.BrainWaveData` 등)를 `fullname`으로 가리키고 있었음
+- 그 결과 트림된 / self-contained / AOT 빌드에서 트리머가 매칭되는 타입을 찾지 못해 모든 보호 대상이 사실상 무시되고, 트랜스포트·파서가 조용히 제거됨 → BLE 데이터가 도착하지 않는 증상(이 파일의 존재 이유 자체가 무력화)
+- 모든 `fullname`을 평탄화된 실제 FQN으로 정정
+
+#### `BleTransport.ConnectAsync` — 핸드셰이크 캐릭터리스틱 미발견 시 잘못된 `Connected` 상태
+- `_handshakeChar`가 `null`일 때 `SendHandshakeAsync()`가 조용히 반환하면서도 상태는 `Connected`로 전이, 호출자는 연결된 것으로 인식하지만 `DataStream`에 패킷이 영원히 도착하지 않음
+- 핸드셰이크가 없으면 `StartESense`를 보낼 수 없으므로 정상 동작이 불가능 → `_eSenseChar`와 동일하게 `null`이면 `ConnectionState.Error`로 전이하도록 수정
+
+---
+
 ## v2.0.2 — 2026-04-09
 
 ### Fixed
