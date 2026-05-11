@@ -119,6 +119,28 @@ await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
 ```
 
+## Connection States
+
+Subscribe to `StateChanged` to observe the lifecycle. `ConnectAsync()` never throws on connection failure — it transitions to `Error` instead, so always check the final state.
+
+| State | Meaning |
+|---|---|
+| `Disconnected` | Initial state, or after `DisconnectAsync()` / link drop |
+| `Scanning` | BLE only — resolving the MAC address |
+| `Connecting` | GATT service discovery (BLE) or RFCOMM socket open (BT Classic) in progress |
+| `Connected` | Notifications enabled and handshake sent — `DataStream` will emit packets |
+| `Error` | Device not found, GATT discovery failed, handshake characteristic missing, or RFCOMM service unavailable. `DataStream` will not emit; call `DisconnectAsync()` and retry. |
+
+```csharp
+sdk.StateChanged += (_, state) =>
+{
+    if (state == ConnectionState.Error)
+    {
+        Console.WriteLine("Connection failed — verify pairing / power / MAC address.");
+    }
+};
+```
+
 ## Simulator (without a real device)
 
 ```csharp
@@ -280,6 +302,19 @@ NeuroSky.Sdk/
 
 NeuroSky.Sample/
 └── Program.cs                  Console sample app
+```
+
+## Trimming / Self-contained / AOT
+
+The package is marked `IsTrimmable=true` and ships an internal `TrimmerRootDescriptor.xml` that preserves the BLE/BT transports, parser, and public API surface. WinRT GATT callbacks are dispatched by the Windows Bluetooth stack via reflection-like mechanisms, so without these roots the trimmer would silently strip the handlers and BLE data would never arrive.
+
+No consumer action is required — publishing with `PublishTrimmed=true`, self-contained, or `PublishAot=true` works out of the box.
+
+```xml
+<PropertyGroup>
+  <PublishTrimmed>true</PublishTrimmed>
+  <SelfContained>true</SelfContained>
+</PropertyGroup>
 ```
 
 ## Build
