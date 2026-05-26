@@ -8,6 +8,7 @@ on:
 jobs:
   publish:
     runs-on: windows-latest
+    environment: production   # Owner 명시 승인 필수 (Sprint 01 Step 6)
 
     steps:
       - uses: actions/checkout@v4
