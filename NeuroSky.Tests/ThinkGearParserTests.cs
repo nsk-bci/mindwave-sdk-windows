@@ -13,7 +13,7 @@ public class ThinkGearParserTests
     public void ParseESense_0xEA_ReturnsAttentionMeditationPoorSignal()
     {
         var bytes = new byte[11];
-        bytes[0]  = 0xEA;
+        bytes[2]  = 0xEA; // 패킷 타입은 2바이트 프리픽스(00 00) 뒤, index 2
         bytes[6]  = 10;   // PoorSignal
         bytes[8]  = 75;   // Attention
         bytes[10] = 55;   // Meditation
@@ -30,7 +30,7 @@ public class ThinkGearParserTests
     public void ParseESense_0xEA_TooShort_ReturnsNull()
     {
         var bytes = new byte[5];
-        bytes[0] = 0xEA;
+        bytes[2] = 0xEA;
 
         var result = _parser.Parse(NeuroSkyUuid.ESense, bytes);
 
@@ -43,7 +43,7 @@ public class ThinkGearParserTests
     public void ParseESense_0xEB_ReturnsDeltaThetaAlpha()
     {
         var bytes = new byte[20];
-        bytes[0] = 0xEB;
+        bytes[2] = 0xEB; // 타입은 index 2 (프리픽스 뒤)
         // Delta at bytes[5~7]
         bytes[5] = 0x00; bytes[6] = 0x01; bytes[7] = 0x00;   // 256
         // Theta at bytes[9~11]
@@ -68,7 +68,7 @@ public class ThinkGearParserTests
     public void ParseESense_0xEC_ReturnsBetaGamma()
     {
         var bytes = new byte[20];
-        bytes[0] = 0xEC;
+        bytes[2] = 0xEC; // 타입은 index 2 (프리픽스 뒤)
         bytes[5]  = 0x00; bytes[6]  = 0x05; bytes[7]  = 0x00; // LowBeta  = 1280
         bytes[9]  = 0x00; bytes[10] = 0x06; bytes[11] = 0x00; // HighBeta = 1536
         bytes[13] = 0x00; bytes[14] = 0x07; bytes[15] = 0x00; // LowGamma = 1792
@@ -81,6 +81,47 @@ public class ThinkGearParserTests
         Assert.Equal(1536, result.HighBeta);
         Assert.Equal(1792, result.LowGamma);
         Assert.Equal(2048, result.MidGamma);
+    }
+
+    // ── BLE Mode: ESense — 실기기 캡처 회귀 테스트 (2026-06-05, MWM2) ──────────
+    // 실제 MWM2 BLE 가 보내는 20바이트 페이로드(2바이트 프리픽스 + type@2).
+    // bytes[0] 기반 파서였다면 모두 null 을 반환해 Att/Med 가 0 으로 나오는 버그를 재현/검출한다.
+
+    [Fact]
+    public void ParseESense_0xEA_RealDevicePacket_ParsesAttentionMeditation()
+    {
+        // 00 00 EA 00 00 02 <poor> 04 <att> 05 <med> ...  (코드 0x02/0x04/0x05 뒤 값)
+        byte[] bytes =
+        {
+            0x00, 0x00, 0xEA, 0x00, 0x00, 0x02, 0x00, 0x04, 0x40, 0x05,
+            0x2F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        };
+
+        var result = _parser.Parse(NeuroSkyUuid.ESense, bytes);
+
+        Assert.NotNull(result);
+        Assert.Equal(0,  result!.PoorSignal);
+        Assert.Equal(64, result.Attention);   // 0x40
+        Assert.Equal(47, result.Meditation);  // 0x2F
+    }
+
+    [Fact]
+    public void ParseESense_0xEB_RealDevicePacket_ParsesBands()
+    {
+        // 실제 캡처: 00 00 EB 00 06 03 E6 30 07 00 81 BA 08 00 13 40 09 00 27 4E
+        byte[] bytes =
+        {
+            0x00, 0x00, 0xEB, 0x00, 0x06, 0x03, 0xE6, 0x30, 0x07, 0x00,
+            0x81, 0xBA, 0x08, 0x00, 0x13, 0x40, 0x09, 0x00, 0x27, 0x4E
+        };
+
+        var result = _parser.Parse(NeuroSkyUuid.ESense, bytes);
+
+        Assert.NotNull(result);
+        Assert.Equal(0x03E630, result!.Delta);
+        Assert.Equal(0x0081BA, result.Theta);
+        Assert.Equal(0x001340, result.LowAlpha);
+        Assert.Equal(0x00274E, result.HighAlpha);
     }
 
     // ── BLE Mode: RawEEG ────────────────────────────────────────────────────
@@ -213,7 +254,7 @@ public class ThinkGearParserTests
     public void SignalQuality_Thresholds(int poorSignal, string expected)
     {
         var bytes = new byte[11];
-        bytes[0] = 0xEA;
+        bytes[2] = 0xEA; // 타입은 index 2 (프리픽스 뒤)
         bytes[6] = (byte)poorSignal;
 
         var result = _parser.Parse(NeuroSkyUuid.ESense, bytes);

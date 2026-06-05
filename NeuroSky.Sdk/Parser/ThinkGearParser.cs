@@ -20,9 +20,12 @@ public sealed class ThinkGearParser
 
     private BrainWaveData? ParseESense(byte[] bytes)
     {
-        if (bytes.Length == 0) return null;
+        // MWM2 BLE eSense 패킷은 2바이트 프리픽스(00 00) 뒤에 패킷 타입이 온다.
+        // 따라서 타입은 bytes[2] 에서 읽어야 한다. (필드 오프셋 6/8/10·5/9/13/17 은 프리픽스 기준)
+        // 레퍼런스 SDK(MWMleService: `byte packType = data[2]`)와 일치.
+        if (bytes.Length < 3) return null;
 
-        return (bytes[0] & 0xFF) switch
+        return (bytes[2] & 0xFF) switch
         {
             0xEA when bytes.Length >= 11 => _current = _current with
             {

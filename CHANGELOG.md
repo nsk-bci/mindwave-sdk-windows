@@ -4,6 +4,19 @@ All notable changes to the NeuroSky MindWave Mobile Windows SDK are documented h
 
 ---
 
+## v2.0.4 — 2026-06-05
+
+### Fixed
+
+#### `ThinkGearParser.ParseESense` — BLE eSense 패킷 타입을 잘못된 오프셋에서 읽음 (Attention/Meditation 항상 0)
+- MWM2 BLE eSense 특성(`039afff8`) 페이로드는 2바이트 프리픽스(`00 00`) 뒤에 패킷 타입(`0xEA/0xEB/0xEC`)이 온다. 즉 타입은 `bytes[2]`에 있다 (레퍼런스 SDK `MWMleService`: `byte packType = data[2]`).
+- 그런데 파서는 타입을 `bytes[0]`에서 읽어, 실제 패킷(`00 00 EA …`)이 항상 `default => null`로 빠졌다. 그 결과 **BLE 모드에서 Attention/Meditation/PoorSignal/대역이 전부 0**으로 나왔다 (raw EEG·블링크는 정상이라 증상이 가려짐). BT Classic 경로는 별도 파서라 영향 없음.
+- 필드 오프셋(`PoorSignal=bytes[6]`, `Attention=bytes[8]`, `Meditation=bytes[10]`, 대역 `@5/9/13/17`)은 이미 프리픽스를 전제로 정확했음 — 타입 검사만 `bytes[2]`로 정정하고 최소 길이 가드를 `>= 3`으로 보강.
+- 실기기(MWM2) 확인: Attention 0→84 / Meditation→61 으로 집중·이완에 정상 반응.
+- 회귀 방지: `ThinkGearParserTests`에 실기기 캡처 패킷 기반 테스트 추가. (기존 eSense 테스트가 버그와 동일한 `bytes[0]` 레이아웃을 사용해 버그를 통과시키고 있었음 → 실제 레이아웃으로 정정)
+
+---
+
 ## v2.0.3 — 2026-05-11
 
 ### Fixed
