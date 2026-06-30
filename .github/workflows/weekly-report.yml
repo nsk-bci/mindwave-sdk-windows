@@ -65,12 +65,12 @@ jobs:
       - name: Send email
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.gmail.com
+          server_address: smtp.sendgrid.net
           server_port: 465
           secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
+          username: apikey
+          password: ${{ secrets.SENDGRID_API_KEY }}
           subject: ${{ steps.sum.outputs.subject }}
           to: hyuk@neurosky.com
-          from: NeuroSky SDK Bot <${{ secrets.MAIL_USERNAME }}>
+          from: NeuroSky SDK Bot <hyuk@neurosky.com>
           body: file://body.txt
