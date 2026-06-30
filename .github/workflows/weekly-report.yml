@@ -1,0 +1,76 @@
+# .github/workflows/weekly-report.yml
+# 매주 월요일 07:30 KST 주간 리포트 이메일 발송 (변경 없어도 항상 발송)
+# cron '30 22 * * 0' = 일요일 22:30 UTC = 월요일 07:30 KST
+name: Weekly Report (Email)
+
+on:
+  schedule:
+    - cron: '30 22 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build weekly summary
+        id: sum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          SINCE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          SINCE_DATE=$(date -u -d '7 days ago' +%Y-%m-%d)
+          TODAY=$(date -u +%Y-%m-%d)
+          {
+            echo "NeuroSky SDK 주간 리포트"
+            echo "저장소: $REPO"
+            echo "기간: 최근 7일 ($SINCE_DATE ~ $TODAY)"
+            echo
+            echo "■ 커밋 (최근 7일)"
+            git log --since="$SINCE" --pretty='  - %h %s (%an)' | head -50 > /tmp/commits || true
+            if [ -s /tmp/commits ]; then cat /tmp/commits; else echo "  (없음)"; fi
+            echo
+            echo "■ 머지된 PR (최근 7일)"
+            gh pr list --repo "$REPO" --state merged --search "merged:>=$SINCE_DATE" \
+              --json number,title -q '.[] | "  - #\(.number) \(.title)"' > /tmp/prs || true
+            if [ -s /tmp/prs ]; then cat /tmp/prs; else echo "  (없음)"; fi
+            echo
+            echo "■ 열린 PR (Dependabot 포함)"
+            gh pr list --repo "$REPO" --state open \
+              --json number,title,author -q '.[] | "  - #\(.number) \(.title) [\(.author.login)]"' > /tmp/openprs || true
+            if [ -s /tmp/openprs ]; then cat /tmp/openprs; else echo "  (없음)"; fi
+            echo
+            echo "■ 최근 OS 감지 이슈"
+            gh issue list --repo "$REPO" --label os-update --state all --limit 5 \
+              --json number,title,state -q '.[] | "  - #\(.number) [\(.state)] \(.title)"' > /tmp/osi || true
+            if [ -s /tmp/osi ]; then cat /tmp/osi; else echo "  (없음)"; fi
+            echo
+            echo "■ 최근 릴리즈"
+            gh release list --repo "$REPO" --limit 5 > /tmp/rel || true
+            if [ -s /tmp/rel ]; then sed 's/^/  /' /tmp/rel; else echo "  (없음)"; fi
+            echo
+            echo "— 이 메일은 변경이 없어도 매주 월요일 07:30(KST)에 자동 발송됩니다."
+          } > body.txt
+          echo "subject=[NSK SDK 주간] $REPO ($SINCE_DATE ~ $TODAY)" >> "$GITHUB_OUTPUT"
+
+      - name: Send email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ${{ steps.sum.outputs.subject }}
+          to: hyuk@neurosky.com
+          from: NeuroSky SDK Bot <${{ secrets.MAIL_USERNAME }}>
+          body: file://body.txt
