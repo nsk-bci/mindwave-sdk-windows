@@ -1,12 +1,12 @@
 # .github/workflows/detect-os.yml
 # 매일 OS 새 버전 감지 → 새 버전이면 이슈 생성 + 이메일 발송
 # 데이터 소스: https://endoflife.date  (중복은 이슈 제목으로 자동 dedup)
-# cron '0 0 * * *' = 매일 00:00 UTC = 09:00 KST
+# TEST(2026-07-01): cron '*/30 * * * *' = 매 30분(:00/:30) 실행 — 스케줄 발동 확인용, 완료 후 '0 0 * * *'로 원복 요망
 name: Detect OS Update
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
