@@ -63,7 +63,7 @@ jobs:
           echo "subject=[NSK SDK 주간] $REPO ($SINCE_DATE ~ $TODAY)" >> "$GITHUB_OUTPUT"
 
       - name: Send email
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v18
         with:
           server_address: smtp.sendgrid.net
           server_port: 465
