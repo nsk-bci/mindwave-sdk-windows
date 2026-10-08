@@ -1,4 +1,21 @@
+using NeuroSky.Sample;
 using NeuroSky.Sdk;
+
+// ── Blink threshold calibration (real device) ────────────────────────────────
+// dotnet run --project NeuroSky.Sample -- calibrate-blink <MAC> [output.csv] [50|60]
+// Procedure: tools/blink-calibration/README.md
+if (args.Length > 0 && args[0] == "calibrate-blink")
+{
+    if (args.Length < 2)
+    {
+        Console.WriteLine("Usage: dotnet run --project NeuroSky.Sample -- calibrate-blink <MAC> [output.csv] [50|60]");
+        return;
+    }
+    string output = args.Length > 2 ? args[2] : $"blink-calibration-{DateTime.Now:yyyyMMdd-HHmmss}.csv";
+    int notchHz = args.Length > 3 && args[3] == "50" ? 50 : 60;
+    await BlinkCalibration.RunAsync(args[1], output, notchHz);
+    return;
+}
 
 // ── Simulator test ────────────────────────────────────────────────────────────
 Console.WriteLine("=== NeuroSky MindWave Windows SDK - Simulator ===");
