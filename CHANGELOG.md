@@ -4,6 +4,24 @@ All notable changes to the NeuroSky MindWave Mobile Windows SDK are documented h
 
 ---
 
+## [Unreleased]
+
+### Removed
+- Bluetooth Classic transport (BLE-only from v7.0.0)
+
+### Added
+- eyeBlink parsing
+
+## [7.0.0] - TBD
+
+### Changed
+- Version scheme realigned with the MindWave SDK line (legacy 4.x)
+- NuGet package version is now injected by `publish.yml` from the Git tag instead of being hard-coded in `NeuroSky.Sdk.csproj`
+- README / developer guide install examples updated to `7.0.0`
+
+### Added
+- `LICENSE` (Apache License 2.0, full text) — previously declared in `.csproj` but missing from the repository
+
 ## v2.0.4 — 2026-06-05
 
 ### Fixed

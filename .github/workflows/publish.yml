@@ -18,14 +18,23 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # The Git tag is the single source of truth for the package version (v7.0.0 -> 7.0.0)
+      - name: Resolve version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}" -replace '^v', ''
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Tag '${{ github.ref_name }}' is not a semantic version" }
+          "value=$v" >> $env:GITHUB_OUTPUT
+
       - name: Build
-        run: dotnet build -c Release
+        run: dotnet build -c Release -p:Version=${{ steps.version.outputs.value }}
 
       - name: Test
         run: dotnet test NeuroSky.Tests/NeuroSky.Tests.csproj -c Release --no-build
 
       - name: Pack
-        run: dotnet pack NeuroSky.Sdk/NeuroSky.Sdk.csproj -c Release --no-build -o artifacts
+        run: dotnet pack NeuroSky.Sdk/NeuroSky.Sdk.csproj -c Release --no-build -o artifacts -p:Version=${{ steps.version.outputs.value }}
 
       - name: Push to NuGet
         shell: pwsh
