@@ -34,6 +34,13 @@ public sealed class NeuroSkySdk : IAsyncDisposable
         => _ble.DataStream(ct);
 
     /// <summary>
+    /// Eye blink events, one per detected blink. Detection runs on raw EEG, so enable it with
+    /// <see cref="NeuroSkyCommand.StartRawEeg"/>; nothing is emitted while signal quality is Poor or NoSignal.
+    /// </summary>
+    public IAsyncEnumerable<BlinkEvent> BlinkStream(CancellationToken ct = default)
+        => _ble.BlinkStream(ct);
+
+    /// <summary>
     /// Connect to a MindWave headset over BLE. No pairing required.
     /// </summary>
     /// <param name="deviceAddress">Bluetooth MAC address (e.g. "AA:BB:CC:DD:EE:FF")</param>

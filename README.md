@@ -169,7 +169,6 @@ await foreach (var data in simulator.DataStream(cts.Token))
 | `LowGamma` | `int` | 0~∞ | 31~39.75 Hz |
 | `MidGamma` | `int` | 0~∞ | 41~49.75 Hz |
 | `RawEeg` | `IReadOnlyList<int>` | -32768~32767 | 512Hz, 10 samples/packet |
-| `EyeBlink` | `int` | 0~255 | Eye blink intensity |
 | `SignalQuality` | `SignalQuality` | enum | NoSignal/Poor/Fair/Good |
 
 ## Finding Your Device Address
@@ -250,6 +249,38 @@ await foreach (var data in sdk.DataStream(ct))
     if (data.Attention > 0)     UpdateEsenseUI(data);
 }
 ```
+
+## Eye Blink Detection
+
+Blinks are detected in the raw EEG stream and delivered on a separate `BlinkStream`, one `BlinkEvent` per
+blink, because several blinks can occur within the ~1 s between eSense packets.
+
+```csharp
+await sdk.SendCommandAsync(NeuroSkyCommand.StartRawEeg);   // detection needs the raw EEG stream
+
+await foreach (var blink in sdk.BlinkStream(cts.Token))
+{
+    Console.WriteLine($"Blink #{blink.Sequence} at {blink.TimestampMs}, strength {blink.Strength}");
+}
+```
+
+| `BlinkEvent` member | Type | Meaning |
+|---|---|---|
+| `TimestampMs` | `long` | Detection time (Unix epoch ms, UTC) |
+| `Strength` | `int` | Raw EEG peak-to-peak amplitude of the detection window |
+| `Sequence` | `int` | Blinks since `ConnectAsync()`, starting at 1 |
+
+Detection runs only while the raw EEG stream is on and signal quality is `Good` or `Fair`
+(`PoorSignal` ≤ 50). It pauses during `Poor` / `NoSignal`, because electrode contact noise looks like a blink.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| Window | 100 samples (~200 ms) | Peak-to-peak is measured over the most recent samples |
+| Threshold | 3000 (provisional) | Minimum peak-to-peak amplitude, in raw EEG units — to be confirmed by on-device measurement |
+| Cooldown | 600 ms | At most one blink is reported per cooldown |
+| Warm-up | 500 ms | No detection right after the stream starts, after a gap of more than 1 s, or after signal quality recovers |
+
+`SimulatorTransport.BlinkStream()` yields nothing.
 
 ## Commands
 

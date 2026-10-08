@@ -13,11 +13,17 @@ public sealed class BleTransport : ITransport
     private GattCharacteristic? _eSenseChar;
     private GattCharacteristic? _rawEegChar;
     private GattCharacteristic? _handshakeChar;
-    private readonly ThinkGearParser _parser = new();
+    private readonly ThinkGearParser _parser;
     private Channel<BrainWaveData> _channel = Channel.CreateUnbounded<BrainWaveData>();
+    private Channel<BlinkEvent> _blinkChannel = Channel.CreateUnbounded<BlinkEvent>();
 
     public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
     public event EventHandler<ConnectionState>? StateChanged;
+
+    public BleTransport()
+    {
+        _parser = new ThinkGearParser(onBlink: e => _blinkChannel.Writer.TryWrite(e));
+    }
 
     public async IAsyncEnumerable<BrainWaveData> DataStream(
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -26,10 +32,19 @@ public sealed class BleTransport : ITransport
             yield return data;
     }
 
+    public async IAsyncEnumerable<BlinkEvent> BlinkStream(
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        await foreach (var blink in _blinkChannel.Reader.ReadAllAsync(ct))
+            yield return blink;
+    }
+
     public async Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
     {
-        // 재연결 시 새 채널 생성
+        // 재연결 시 새 채널 생성, 깜빡임 횟수·검출기 초기화
         _channel = Channel.CreateUnbounded<BrainWaveData>();
+        _blinkChannel = Channel.CreateUnbounded<BlinkEvent>();
+        _parser.Reset();
         SetState(ConnectionState.Scanning);
 
         // MAC address string → ulong

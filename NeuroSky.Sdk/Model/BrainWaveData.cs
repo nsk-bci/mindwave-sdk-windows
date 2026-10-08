@@ -15,7 +15,6 @@ public record BrainWaveData
     public int LowGamma    { get; init; } = 0;
     public int MidGamma    { get; init; } = 0;
     public IReadOnlyList<int> RawEeg { get; init; } = [];  // 10 samples/packet, 512Hz
-    public int EyeBlink    { get; init; } = 0;
 
     public SignalQuality SignalQuality => PoorSignal switch
     {
