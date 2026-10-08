@@ -20,7 +20,11 @@ All notable changes to the NeuroSky MindWave Mobile Windows SDK are documented h
 - README / developer guide install examples updated to `7.0.0`
 
 ### Added
+- `NOTICE` (Copyright 2024-2026 NeuroSky, Inc.)
 - `LICENSE` (Apache License 2.0, full text) — previously declared in `.csproj` but missing from the repository
+
+### Removed
+- `developer-guide.pdf` and `docs/developer-guide.pdf` — superseded by `docs/developer-guide.md`; integrated developer and user guides will follow
 
 ## v2.0.4 — 2026-06-05
 
