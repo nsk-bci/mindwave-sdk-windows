@@ -26,7 +26,7 @@ pdf_options:
   <div class="cover-bottom">
     <div class="cover-tagline">
       Real-time EEG integration for Windows applications<br/>
-      via Bluetooth Low Energy + BT Classic<br/><br/>
+      via Bluetooth Low Energy<br/><br/>
       Built on .NET 8 and C# 12
     </div>
   </div>
@@ -47,7 +47,7 @@ pdf_options:
 5. [Windows Setup & Deployment](#5-windows-setup--deployment)
 6. [Quick Start](#6-quick-start)
 7. [Finding Your Device MAC Address](#7-finding-your-device-mac-address)
-8. [Connection Modes & State Machine](#8-connection-modes--state-machine)
+8. [Connection & State Machine](#8-connection--state-machine)
 9. [EEG Data Model](#9-eeg-data-model)
 10. [EEG Frequency Bands Explained](#10-eeg-frequency-bands-explained)
 11. [Signal Quality](#11-signal-quality)
@@ -76,8 +76,7 @@ This SDK eliminates TGC entirely by communicating directly with the MindWave Mob
 | Feature | Description |
 |---|---|
 | No TGC dependency | Communicates with hardware directly via WinRT |
-| BLE + BT Classic | BLE by default; BT Classic available for noisy RF environments |
-| Developer-selectable transport | `TransportMode.Ble` (default) or `TransportMode.BtClassic` — no hidden auto-fallback |
+| BLE only | No Windows pairing required; Bluetooth Classic is not supported |
 | Async stream API | `IAsyncEnumerable<BrainWaveData>` — native `await foreach`, cancel via `CancellationToken` |
 | Built-in Simulator | Full data simulation without any hardware |
 | Trimmer / AOT safe | Ships an internal `TrimmerRootDescriptor` — no consumer setup required |
@@ -105,7 +104,7 @@ The MindWave Mobile headset contains a single dry electrode on the forehead (FP1
 │  ThinkGear ASIC chip                     │
 │    → raw ADC samples (512Hz)             │
 │    → computes FFT + eSense™ internally   │
-│    → transmits via BLE or BT Classic     │
+│    → transmits via BLE                   │
 └────────────────┬─────────────────────────┘
                  │ Bluetooth packets
         ┌────────▼────────┐
@@ -121,15 +120,12 @@ The MindWave Mobile headset contains a single dry electrode on the forehead (FP1
         │   │    WinRT BLE GATT                       │
         │   │    (Windows.Devices.Bluetooth +         │
         │   │     GenericAttributeProfile)            │
-        │   ├── BtClassicTransport                    │
-        │   │    WinRT RFCOMM SPP                     │
-        │   │    (Windows.Devices.Bluetooth.Rfcomm)   │
         │   └── SimulatorTransport                    │
         │        (virtual data, no hardware)          │
         │          ↓                                  │
         │   ThinkGearParser                           │
-        │    BLE: decodes 0xEA / 0xEB / 0xEC packets  │
-        │    BT Classic: 0xAA 0xAA sync + checksum    │
+        │    decodes 0xEA / 0xEB / 0xEC packets       │
+        │    decodes raw EEG bytes                    │
         │          ↓                                  │
         │   BrainWaveData (emitted per packet)        │
         └────────────────┬────────────────────────────┘
@@ -140,24 +136,12 @@ The MindWave Mobile headset contains a single dry electrode on the forehead (FP1
                 └─────────────────┘
 ```
 
-### BLE vs BT Classic — internal differences
+### BLE data path
 
-**BLE (Bluetooth Low Energy) path:**
-The MindWave Mobile exposes three BLE GATT characteristics:
+The MindWave Mobile 2 exposes three BLE GATT characteristics:
 - `039afff8-...` — eSense data (Attention, Meditation, frequency bands) — SDK subscribes to notifications
 - `039afff4-...` — Raw EEG data — SDK subscribes to notifications
 - `039affa0-...` — Handshake characteristic — SDK writes command bytes to start data flow
-
-**BT Classic (RFCOMM SPP) path:**
-The MindWave Mobile emulates a serial port (Serial Port Profile, UUID `00001101-...`) at 57 600 baud. The SDK opens an RFCOMM socket and reads a continuous byte stream. `ThinkGearParser` synchronizes on the `0xAA 0xAA` sync bytes and parses variable-length payload codes (0x02 PoorSignal, 0x04 Attention, 0x05 Meditation, 0x80 Raw EEG, 0x83 EEG Power).
-
-Both paths produce identical `BrainWaveData` output. The parsing layer is shared.
-
-### BLE default — no automatic fallback
-
-`NeuroSkySdk.ConnectAsync()` uses BLE by default. To use BT Classic instead, pass `TransportMode.BtClassic` to `ConnectAsync()`. Both transports produce the same `DataStream` output.
-
-> `NeuroSkySdk` does **not** attempt BLE first and then fall back to BT Classic automatically. The transport you pass to `ConnectAsync()` is the only transport used. If you need fallback logic, implement it yourself in the caller.
 
 ### Single flat namespace
 
@@ -173,9 +157,8 @@ As of v2.0.1, every SDK type lives in the single `NeuroSky.Sdk` namespace. A sin
 |---|---|---|
 | Windows | Windows 10 version 1903 (build 18362) | WinRT BLE GATT requires 1903+ |
 | .NET runtime | .NET 8.0 | Must be installed on the target machine |
-| Bluetooth adapter | BLE-capable adapter | For `TransportMode.Ble` (default) |
-| Bluetooth adapter | Classic BT adapter | For `TransportMode.BtClassic` |
-| Device pairing | Not required for BLE | Required for BT Classic |
+| Bluetooth adapter | BLE-capable adapter | |
+| Device pairing | Not required | |
 
 ### Project requirements
 
@@ -192,7 +175,7 @@ The `10.0.19041.0` suffix corresponds to Windows 10 version 2004. This is the mi
 
 ### Supported headset
 
-This SDK is designed and tested for the **NeuroSky MindWave Mobile 2** (sometimes labeled just "MindWave Mobile"). The original MindWave (wired, USB dongle) is not supported. Both BLE and BT Classic modes of the MindWave Mobile 2 are supported.
+This SDK is designed and tested for the **NeuroSky MindWave Mobile 2** (sometimes labeled just "MindWave Mobile"). The SDK connects over BLE only. The original MindWave (wired, USB dongle), MindWave Mobile 1st gen, and third-party TGAM boards are not supported.
 
 ---
 
@@ -311,7 +294,7 @@ sdk.StateChanged += (_, state) =>
 {
     Console.WriteLine($"[State] {state}");
     if (state == ConnectionState.Error)
-        Console.WriteLine("Connection failed — verify pairing / power / MAC.");
+        Console.WriteLine("Connection failed — verify power / MAC.");
 };
 
 // Step 3: Set up graceful cancellation.
@@ -324,7 +307,6 @@ Console.CancelKeyPress += (_, e) =>
 
 // Step 4: Connect to the headset.
 // Replace with your MindWave Mobile's actual MAC address.
-// Default mode is BLE. Pass TransportMode.BtClassic for BT Classic.
 // See Section 7 for how to find your MAC address.
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
 
@@ -405,34 +387,9 @@ Task<string?> FindDeviceAddressAsync(
 
 Returns the MAC address as `"AA:BB:CC:DD:EE:FF"`, or `null` if not found within the timeout.
 
-### Method 2 — Windows Settings (easiest for one-off lookup)
+### Method 2 — Bluetooth LE Explorer app (visual scan)
 
-1. Turn on the MindWave Mobile headset (power switch on the left side)
-2. Open **Settings** → **Bluetooth & other devices**
-3. Pair the device if not already paired (no PIN required)
-4. Click on "**MindWave Mobile**" → **Properties** (or **More info**)
-5. The MAC address is shown as a 12-digit hex string
-
-### Method 3 — PowerShell (for already-paired devices)
-
-```powershell
-Get-PnpDevice -Class Bluetooth |
-    Where-Object { $_.FriendlyName -like "*MindWave*" } |
-    Select-Object FriendlyName, DeviceID
-```
-
-Sample output:
-```
-FriendlyName        DeviceID
-------------        --------
-MindWave Mobile     BTHENUM\...\7&3A1B2C3D&0&AABBCCDDEEFF_C00000000
-```
-
-The last 12 hex characters before `_C00000000` are your MAC address. Format them as `AA:BB:CC:DD:EE:FF`.
-
-### Method 4 — Bluetooth LE Explorer app (visual scan)
-
-If the device is not yet paired and you want to scan for its MAC address without pairing:
+To look up the MAC address with a BLE scan, without writing code:
 
 1. Install **Bluetooth LE Explorer** from the Microsoft Store (free, official Microsoft tool)
 2. Open the app and click **Start**
@@ -442,57 +399,21 @@ If the device is not yet paired and you want to scan for its MAC address without
 
 ---
 
-## 8. Connection Modes & State Machine
+## 8. Connection & State Machine
 
-### The `TransportMode` enum
-
-```csharp
-public enum TransportMode
-{
-    Ble,        // BLE — no Windows pairing required (default)
-    BtClassic   // BT Classic — requires Windows Bluetooth pairing
-}
-```
-
-### `TransportMode.Ble` (default)
+### BLE connection
 
 ```csharp
-// Both lines are equivalent:
 await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.Ble);
 ```
 
 **How it works:** WinRT's `BluetoothLEDevice.FromBluetoothAddressAsync()` opens a GATT session to the MindWave Mobile, the SDK discovers services, subscribes to eSense and Raw EEG characteristics, and writes the `0x17` (StartESense) handshake command to begin data streaming.
 
-**When to use:**
-- Your users should not need to manually pair the device
-- The target machine has a BLE-capable adapter (most adapters made after 2012)
-- You want the smoothest user experience
-
-### `TransportMode.BtClassic`
-
-```csharp
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
-```
-
-**How it works:** WinRT's `RfcommDeviceService` opens an RFCOMM socket over Serial Port Profile. The MindWave Mobile presents itself as a virtual serial port at 57 600 baud. The `ThinkGearParser` reads the incoming byte stream and synchronizes on `0xAA 0xAA` sync headers.
-
-**Pairing prerequisite (one-time, per machine):**
-
-1. Open **Settings → Bluetooth & other devices → Add device**
-2. Select **Bluetooth**
-3. Wait for "**MindWave Mobile**" to appear
-4. Click it and follow the pairing prompt (no PIN required)
-5. Confirm the device shows as **Paired**
-
-**When to use:**
-- You are deploying to a controlled environment where devices are pre-paired by IT
-- BLE connectivity is unreliable on the target hardware
-- You are integrating with existing BT Classic infrastructure
+No Windows pairing is required. The target machine needs a BLE-capable adapter (most adapters made after 2012).
 
 ### `ConnectionState` machine
 
-Every transport progresses through the same lifecycle states:
+The connection progresses through these lifecycle states:
 
 ```
    Disconnected
@@ -501,7 +422,7 @@ Every transport progresses through the same lifecycle states:
     Scanning  (BLE only — resolving address)
         │
         ▼  device found
-    Connecting  (GATT discovery / RFCOMM socket open)
+    Connecting  (GATT discovery)
         │
    ┌────┴─────┐
    ▼          ▼
@@ -515,9 +436,9 @@ Connected   Error
 |---|---|
 | `Disconnected` | Initial state, or after `DisconnectAsync()` / link drop |
 | `Scanning` | BLE only — resolving the MAC address |
-| `Connecting` | GATT discovery (BLE) or RFCOMM socket open (BT Classic) in progress |
+| `Connecting` | GATT discovery in progress |
 | `Connected` | Notifications enabled and handshake sent — `DataStream` will emit packets |
-| `Error` | Device not found, GATT discovery failed, **handshake characteristic missing**, or RFCOMM service unavailable. `DataStream` will not emit; call `DisconnectAsync()` and retry. |
+| `Error` | Device not found, GATT discovery failed, or **handshake characteristic missing**. `DataStream` will not emit; call `DisconnectAsync()` and retry. |
 
 > **`ConnectAsync` never throws on connection failure.** Instead it transitions to `ConnectionState.Error`. Subscribing to `StateChanged` (or polling `sdk.State`) is the **only** way to detect connection failures. Code that wraps `ConnectAsync` in `try/catch` alone will miss BLE failures.
 
@@ -778,7 +699,7 @@ await sdk.SendCommandAsync(NeuroSkyCommand.StartESense);
 | `NeuroSkyCommand.StartESense` | `0x17` | Enable eSense output (sent automatically on BLE connect) |
 | `NeuroSkyCommand.StopESense` | `0x18` | Disable eSense output |
 
-> The SDK automatically writes `StartESense` (`0x17`) to the BLE handshake characteristic as the final step of `ConnectAsync(_, TransportMode.Ble)`. You typically only need `Notch6 0Hz` / `Notch50Hz` and optionally `StartRawEeg`.
+> The SDK automatically writes `StartESense` (`0x17`) to the BLE handshake characteristic as the final step of `ConnectAsync()`. You typically only need `Notch6 0Hz` / `Notch50Hz` and optionally `StartRawEeg`.
 
 ---
 
@@ -888,7 +809,6 @@ Conditions that produce `Error`:
 - Device not found at the given MAC address
 - GATT service discovery failed
 - **Handshake characteristic not present** on the device (v2.0.3+ — previously silent)
-- RFCOMM service unavailable for the BT Classic transport
 - Bluetooth adapter disabled or unavailable
 
 ### Stream disconnection and auto-reconnect
@@ -904,7 +824,7 @@ while (!cts.Token.IsCancellationRequested)
     try
     {
         Console.WriteLine("Connecting to MindWave Mobile…");
-        await sdk.ConnectAsync(address, TransportMode.Ble, cts.Token);
+        await sdk.ConnectAsync(address, cts.Token);
 
         if (sdk.State == ConnectionState.Error)
         {
@@ -1149,7 +1069,6 @@ await foreach (var data in sdk.DataStream(ct))
 |---|---|---|
 | `State` becomes `Error` immediately on BLE | No BLE adapter, BLE disabled, or wrong MAC | Open Device Manager → Bluetooth, confirm adapter present and enabled; verify MAC |
 | BLE connect succeeds but `DataStream` yields nothing | Handshake characteristic missing from device — v2.0.3+ now reports this as `Error` | Confirm device is a MindWave Mobile 2 (not a different headset advertising similar name) |
-| `BtClassic` fails with access denied or not found | Device not paired in Windows | Pair via Settings → Bluetooth & other devices first |
 | `ConnectAsync` never returns | Bluetooth adapter stuck | Disable / re-enable Bluetooth adapter in Device Manager |
 | Connection drops after a few minutes idle | Windows Bluetooth power saving | Device Manager → Bluetooth adapter → Properties → Power Management → uncheck "Allow the computer to turn off this device" |
 
@@ -1168,7 +1087,7 @@ await foreach (var data in sdk.DataStream(ct))
 | Symptom | Likely cause | Solution |
 |---|---|---|
 | `CS0246: 'NeuroSkySdk' not found` | Missing `using NeuroSky.Sdk;` | Add the using directive — a single one is enough (all types are flat) |
-| `CS0246: 'TransportMode' not found` after v2.0.1 | Using old `NeuroSky.Sdk.Transport.*` namespace | Remove `using NeuroSky.Sdk.Transport;` — types are now in `NeuroSky.Sdk` |
+| `CS0246: 'TransportMode' not found` | Removed in v7.0.0 | The SDK is BLE-only. Call `ConnectAsync(address)` without a mode argument |
 | `PlatformNotSupportedException` at runtime | Wrong TargetFramework | Ensure `.csproj` has `net8.0-windows10.0.19041.0` |
 | `FileNotFoundException: WinRT.Runtime.dll` | Package not restored | Run `dotnet restore` |
 | Trimmed/AOT publish: BLE data never arrives | Old SDK (v2.0.1 / v2.0.2) shipped descriptor that didn't match flattened FQNs | Upgrade to v2.0.3+ — descriptor was corrected in v2.0.3 |
@@ -1184,7 +1103,7 @@ await foreach (var data in sdk.DataStream(ct))
 
 ## 17. Testing
 
-The SDK ships with an xUnit test suite for `ThinkGearParser` — the packet parser that runs identically on both BLE and BT Classic transports. These tests require no hardware or Bluetooth adapter.
+The SDK ships with an xUnit test suite for `ThinkGearParser` — the BLE packet parser. These tests require no hardware or Bluetooth adapter.
 
 ### Running the tests
 
@@ -1216,9 +1135,6 @@ Test summary: total: 15, failed: 0, succeeded: 15, skipped: 0, duration: ~40 ms
 | `ParseRawEeg_SignedConversion_NegativeValue` | Values > 32 768 converted to negative |
 | `ParseRawEeg_TooShort_ReturnsNull` | Short packet → returns null |
 | `Parse_UnknownUuid_ReturnsNull` | Unknown UUID → returns null |
-| `ParseByte_ValidPacket_ReturnsAttentionMeditation` | BT Classic serial packet — Attention/Meditation |
-| `ParseByte_InvalidChecksum_ReturnsNull` | Wrong checksum → returns null |
-| `ParseByte_PoorSignalCode_ReturnsPoorSignal` | BT Classic PoorSignal (code `0x02`) |
 | `SignalQuality_Thresholds(200, "NoSignal")` | 200 → NoSignal |
 | `SignalQuality_Thresholds(100, "Poor")` | 100 → Poor |
 | `SignalQuality_Thresholds(25,  "Fair")` | 25 → Fair |
@@ -1237,7 +1153,7 @@ NeuroSky.Tests/
 
 ### `NeuroSkySdk`
 
-Main entry point. Manages BLE/BT Classic transport selection and lifecycle.
+Main entry point. Manages the BLE connection and its lifecycle.
 
 ```csharp
 public sealed class NeuroSkySdk : IAsyncDisposable
@@ -1247,9 +1163,9 @@ public sealed class NeuroSkySdk : IAsyncDisposable
 |---|---|---|
 | `State` | `ConnectionState` | Current connection state (property, get-only) |
 | `StateChanged` | `event EventHandler<ConnectionState>` | Fires whenever the state changes |
-| `ConnectAsync(string, TransportMode, CancellationToken)` | `Task` | Initiate connection. Does NOT throw on connect failure — transitions to `Error` instead. Default mode: `TransportMode.Ble`. No automatic fallback. |
+| `ConnectAsync(string, CancellationToken)` | `Task` | Initiate a BLE connection. Does NOT throw on connect failure — transitions to `Error` instead. |
 | `FindDeviceAddressAsync(string, int, CancellationToken)` | `Task<string?>` | Scan BLE advertisements; resolve device name → MAC. Default timeout 10 000 ms. Returns `null` on timeout. |
-| `DisconnectAsync()` | `Task` | Gracefully disconnect the active transport |
+| `DisconnectAsync()` | `Task` | Gracefully disconnect |
 | `DataStream(CancellationToken)` | `IAsyncEnumerable<BrainWaveData>` | Async stream of EEG packets; ends when connection drops or token cancels |
 | `SendCommandAsync(byte)` | `Task` | Send a control byte to the headset |
 | `DisposeAsync()` | `ValueTask` | Disconnect and release all Bluetooth resources |
@@ -1280,21 +1196,6 @@ Immutable record emitted by `DataStream()`.
 
 ---
 
-### `TransportMode`
-
-Controls which Bluetooth protocol `ConnectAsync` uses.
-
-```csharp
-public enum TransportMode { Ble, BtClassic }
-```
-
-| Value | Behavior | Pairing required? |
-|---|---|---|
-| `Ble` | BLE GATT only (default) | No |
-| `BtClassic` | RFCOMM SPP only | Yes |
-
----
-
 ### `ConnectionState`
 
 ```csharp
@@ -1305,9 +1206,9 @@ public enum ConnectionState { Disconnected, Scanning, Connecting, Connected, Err
 |---|---|
 | `Disconnected` | No active connection |
 | `Scanning` | BLE only — resolving target device |
-| `Connecting` | Establishing GATT/RFCOMM connection |
+| `Connecting` | Establishing GATT connection |
 | `Connected` | Data stream active |
-| `Error` | Connection attempt failed (device not found, GATT discovery failed, handshake characteristic missing, RFCOMM unavailable) |
+| `Error` | Connection attempt failed (device not found, GATT discovery failed, handshake characteristic missing) |
 
 ---
 
@@ -1326,7 +1227,7 @@ Derived from `BrainWaveData.PoorSignal`.
 
 ### `ITransport` (interface)
 
-Common interface implemented by `BleTransport`, `BtClassicTransport`, and `SimulatorTransport`.
+Common interface implemented by `BleTransport` and `SimulatorTransport`.
 
 ```csharp
 public interface ITransport : IAsyncDisposable
@@ -1392,7 +1293,6 @@ public static class NeuroSkyUuid
 | `ESense` | `039afff8-…` | eSense (Attention/Meditation/bands) notify |
 | `Handshake` | `039affa0-…` | Handshake / command write |
 | `RawEeg` | `039afff4-…` | Raw EEG notify |
-| `Spp` | `00001101-…` | BT Classic RFCOMM SPP |
 | `Manufacturer`, `ModelNumber`, `SerialNumber`, `HwRevision`, `FwRevision`, `SwRevision` | standard BLE | Device Information Service |
 
 ---

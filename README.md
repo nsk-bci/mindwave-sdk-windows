@@ -4,7 +4,7 @@
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via WinRT.
+Modern C# SDK for the NeuroSky MindWave Mobile 2 EEG headset — Bluetooth Low Energy (BLE) via WinRT.
 
 > [!NOTE]
 > v7.0.0 continues the MindWave SDK line (legacy 4.x), rebuilt from scratch
@@ -16,7 +16,7 @@ Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via
 
 > [!TIP]
 > **Before diving into the steps — read the [Developer Guide](docs/developer-guide.md) first.**  
-> It covers the full connection flow, BLE vs BT Classic internals, signal quality handling, packet timing, advanced patterns, and the complete API reference. Most integration questions are answered there.
+> It covers the full connection flow, BLE internals, signal quality handling, packet timing, advanced patterns, and the complete API reference. Most integration questions are answered there.
 
 ### Step 1 — Add the NuGet package
 
@@ -103,25 +103,9 @@ That's it — four steps from zero to streaming EEG data.
 |---|---|
 | OS | Windows 10 version 1903 (build 18362) |
 | .NET | .NET 8.0 |
-| Bluetooth | BLE adapter (BLE mode) or Classic BT adapter (BT Classic mode) |
-| Device pairing | Not required for BLE; required for BT Classic |
-
-## Connection Modes
-
-Choose how to connect via the `TransportMode` parameter:
-
-| Mode | Behavior | Pairing required? |
-|---|---|---|
-| `TransportMode.Ble` | BLE — fastest, no pairing needed (default) | No |
-| `TransportMode.BtClassic` | BT Classic — more stable in noisy RF environments | Yes |
-
-```csharp
-// BLE (default)
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
-
-// BT Classic only — pair the device first in Windows Settings
-await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF", TransportMode.BtClassic);
-```
+| Bluetooth | BLE adapter |
+| Device pairing | Not required |
+| Headset | MindWave Mobile 2 (MindWave Mobile 1st gen and third-party TGAM boards are not supported) |
 
 ## Connection States
 
@@ -131,16 +115,16 @@ Subscribe to `StateChanged` to observe the lifecycle. `ConnectAsync()` never thr
 |---|---|
 | `Disconnected` | Initial state, or after `DisconnectAsync()` / link drop |
 | `Scanning` | BLE only — resolving the MAC address |
-| `Connecting` | GATT service discovery (BLE) or RFCOMM socket open (BT Classic) in progress |
+| `Connecting` | GATT service discovery in progress |
 | `Connected` | Notifications enabled and handshake sent — `DataStream` will emit packets |
-| `Error` | Device not found, GATT discovery failed, handshake characteristic missing, or RFCOMM service unavailable. `DataStream` will not emit; call `DisconnectAsync()` and retry. |
+| `Error` | Device not found, GATT discovery failed, or handshake characteristic missing. `DataStream` will not emit; call `DisconnectAsync()` and retry. |
 
 ```csharp
 sdk.StateChanged += (_, state) =>
 {
     if (state == ConnectionState.Error)
     {
-        Console.WriteLine("Connection failed — verify pairing / power / MAC address.");
+        Console.WriteLine("Connection failed — verify power / MAC address.");
     }
 };
 ```
@@ -284,21 +268,19 @@ await sdk.SendCommandAsync(NeuroSkyCommand.StopRawEeg);
 | Transport | Method | Requirement |
 |---|---|---|
 | `BleTransport` | WinRT BLE GATT | Windows 10 1903+, BLE adapter |
-| `BtClassicTransport` | WinRT RFCOMM SPP | Paired device in Windows Settings |
 | `SimulatorTransport` | Virtual data | For development/testing |
 
 ## Project Structure
 
 ```
 NeuroSky.Sdk/
-├── NeuroSkySdk.cs              Entry point (BLE by default)
+├── NeuroSkySdk.cs              Entry point (BLE)
 ├── NeuroSkyUuid.cs             BLE UUID constants, command byte constants
 ├── Model/
 │   └── BrainWaveData.cs        EEG data model
 ├── Transport/
 │   ├── ITransport.cs           Common interface, ConnectionState enum
-│   ├── BleTransport.cs         WinRT BLE GATT implementation
-│   └── BtClassicTransport.cs   WinRT RFCOMM SPP implementation
+│   └── BleTransport.cs         WinRT BLE GATT implementation
 ├── Parser/
 │   └── ThinkGearParser.cs      ThinkGear packet parser
 └── Simulator/

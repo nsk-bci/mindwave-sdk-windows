@@ -11,9 +11,6 @@
     <!-- BleTransport — preserve GATT characteristic notification handler -->
     <type fullname="NeuroSky.Sdk.BleTransport" preserve="all" />
 
-    <!-- BtClassicTransport — preserve RFCOMM stream reader thread entry -->
-    <type fullname="NeuroSky.Sdk.BtClassicTransport" preserve="all" />
-
     <!-- Parser — preserve all parser logic (called from preserved transports) -->
     <type fullname="NeuroSky.Sdk.ThinkGearParser" preserve="all" />
 
@@ -22,7 +19,6 @@
     <type fullname="NeuroSky.Sdk.BrainWaveData" preserve="all" />
     <type fullname="NeuroSky.Sdk.SignalQuality" preserve="all" />
     <type fullname="NeuroSky.Sdk.ConnectionState" preserve="all" />
-    <type fullname="NeuroSky.Sdk.TransportMode" preserve="all" />
     <type fullname="NeuroSky.Sdk.ITransport" preserve="all" />
     <type fullname="NeuroSky.Sdk.NeuroSkyUuid" preserve="all" />
     <type fullname="NeuroSky.Sdk.NeuroSkyCommand" preserve="all" />

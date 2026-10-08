@@ -2,14 +2,11 @@ namespace NeuroSky.Sdk;
 
 /// <summary>
 /// NeuroSky ThinkGear packet parser.
-/// BLE mode: use <see cref="Parse"/>.
-/// BT Classic mode: feed stream bytes one at a time into <see cref="ParseByte"/>.
+/// Feed BLE characteristic notifications into <see cref="Parse"/>.
 /// </summary>
 public sealed class ThinkGearParser
 {
     private BrainWaveData _current = new();
-
-    // ── BLE Mode ──────────────────────────────────────────────────────────────
 
     public BrainWaveData? Parse(Guid uuid, byte[] bytes)
     {
@@ -71,115 +68,6 @@ public sealed class ThinkGearParser
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
         return _current;
-    }
-
-    // ── BT Classic Mode (ThinkGear Serial Protocol) ────────────────────────
-
-    private enum SerialState { Sync1, Sync2, PLength, Payload, Checksum }
-    private SerialState _serialState = SerialState.Sync1;
-    private int _payloadLength;
-    private readonly List<byte> _payloadBuffer = [];
-    private int _checksum;
-
-    public BrainWaveData? ParseByte(byte b)
-    {
-        int val = b & 0xFF;
-        return _serialState switch
-        {
-            SerialState.Sync1 => Transition(val == 0xAA, SerialState.Sync2),
-            SerialState.Sync2 => Transition(val == 0xAA, SerialState.PLength, SerialState.Sync1),
-            SerialState.PLength => InitPayload(val),
-            SerialState.Payload => AccumulatePayload(b, val),
-            SerialState.Checksum => VerifyAndParse(val),
-            _ => null
-        };
-    }
-
-    private BrainWaveData? Transition(bool condition, SerialState next, SerialState fallback = SerialState.Sync1)
-    {
-        _serialState = condition ? next : fallback;
-        return null;
-    }
-
-    private BrainWaveData? InitPayload(int val)
-    {
-        if (val == 0xAA) return null;
-        _payloadLength = val;
-        _payloadBuffer.Clear();
-        _checksum = 0;
-        _serialState = SerialState.Payload;
-        return null;
-    }
-
-    private BrainWaveData? AccumulatePayload(byte b, int val)
-    {
-        _payloadBuffer.Add(b);
-        _checksum = (_checksum + val) & 0xFF;
-        if (_payloadBuffer.Count >= _payloadLength)
-            _serialState = SerialState.Checksum;
-        return null;
-    }
-
-    private BrainWaveData? VerifyAndParse(int val)
-    {
-        _serialState = SerialState.Sync1;
-        int expected = (_checksum ^ 0xFF) & 0xFF;
-        return val == expected ? ParseSerialPayload([.. _payloadBuffer]) : null;
-    }
-
-    private BrainWaveData? ParseSerialPayload(byte[] payload)
-    {
-        int i = 0;
-        while (i < payload.Length)
-        {
-            int code = payload[i++] & 0xFF;
-            switch (code)
-            {
-                case 0x02: if (i < payload.Length) _current = _current with { PoorSignal = payload[i++] & 0xFF }; break;
-                case 0x04: if (i < payload.Length) _current = _current with { Attention  = payload[i++] & 0xFF }; break;
-                case 0x05: if (i < payload.Length) _current = _current with { Meditation = payload[i++] & 0xFF }; break;
-                case 0x16: if (i < payload.Length) _current = _current with { EyeBlink   = payload[i++] & 0xFF }; break;
-                case 0x80:
-                {
-                    if (i >= payload.Length) break;
-                    int len = payload[i++] & 0xFF;
-                    if (i + len <= payload.Length && len >= 2)
-                    {
-                        int raw = ((payload[i] & 0xFF) << 8) | (payload[i + 1] & 0xFF);
-                        if (raw >= 32768) raw -= 65536;
-                        _current = _current with { RawEeg = [raw] };
-                    }
-                    i += len;
-                    break;
-                }
-                case 0x83:
-                {
-                    if (i >= payload.Length) break;
-                    int len = payload[i++] & 0xFF;
-                    if (i + len <= payload.Length && len >= 24)
-                    {
-                        _current = _current with
-                        {
-                            Delta     = Read3Bytes(payload, i),
-                            Theta     = Read3Bytes(payload, i + 3),
-                            LowAlpha  = Read3Bytes(payload, i + 6),
-                            HighAlpha = Read3Bytes(payload, i + 9),
-                            LowBeta   = Read3Bytes(payload, i + 12),
-                            HighBeta  = Read3Bytes(payload, i + 15),
-                            LowGamma  = Read3Bytes(payload, i + 18),
-                            MidGamma  = Read3Bytes(payload, i + 21)
-                        };
-                        i += len;
-                    }
-                    break;
-                }
-                default:
-                    if (code >= 0x80) { if (i < payload.Length) { int len = payload[i++] & 0xFF; i += len; } }
-                    else              { if (i < payload.Length) i++; }
-                    break;
-            }
-        }
-        return _current with { Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
     }
 
     private static int Read3Bytes(byte[] bytes, int offset)
