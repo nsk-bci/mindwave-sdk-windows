@@ -39,6 +39,8 @@ internal static class BlinkCalibration
         await using var file = new StreamWriter(outputPath);
         var log = new CsvLog(file);
         string phase = "connect";
+        // Lets analyze.py check its replay against the blinks the SDK itself reported.
+        log.Write(Now(), phase, "config", -1, $"sdk_threshold={BlinkDetector.DefaultThreshold}");
         int poorSignal = -1;  // -1 until the first eSense packet
 
         var dataTask = Task.Run(async () =>

@@ -50,8 +50,11 @@ The script replays the SDK's detection algorithm over the recordings for every t
 - **Threshold sweep**: for each threshold, the hit rate (cued blinks detected), false positives in
   the cued phase (detections outside any cue window), and false positives in the no-blink phase
   (detections not explained by a SPACE mark).
-- **Recommendation**: the middle of the range that has zero false positives and a hit rate of at
-  least 90 %.
+- **Self-check**: replays each recording at the threshold the SDK used while recording, and compares
+  the result with the blinks the SDK itself reported (`sdk_blink` rows). "identical" shows on real data
+  that the script's algorithm matches the SDK's. If it says MISMATCH, don't use the sweep.
+- **Recommendation**: the middle of the range that has zero false positives (both phases) and a hit
+  rate of at least 90 %.
 
 | Window | Counts as |
 |---|---|
@@ -62,11 +65,12 @@ The script replays the SDK's detection algorithm over the recordings for every t
 
 ### 3. Decide and record
 
-Acceptance criteria:
+Acceptance criteria (the recommendation in `analyze.py` applies exactly these):
 
-- Hit rate **≥ 90 %** (27/30 per recording)
+- Hit rate **≥ 90 %** over all cued blinks (27/30 per recording)
 - **0** false positives in the no-blink phase
-- Ideally 0 false positives in the cued phase as well
+- **0** false positives in the cued phase (detections outside every cue window)
+- Self-check reports **identical** for every recording (see below)
 
 Then:
 
@@ -88,4 +92,5 @@ or movement artifacts. Record again rather than relaxing the criteria.
 | `esense` | — (`poor_signal` holds the latest PoorSignal) |
 | `cue` | Cue number 1–30 |
 | `mark` | SPACE press number |
-| `sdk_blink` | Strength of a blink the SDK reported at its current default threshold (reference only) |
+| `config` | `sdk_threshold=<n>`: the SDK's threshold while recording |
+| `sdk_blink` | Strength of a blink the SDK reported at that threshold (used by the self-check) |

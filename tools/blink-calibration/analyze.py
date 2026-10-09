@@ -28,6 +28,7 @@ MARK_BEFORE_MS = 1_500  # SPACE is pressed after an involuntary blink
 MARK_AFTER_MS = 300
 
 TARGET_HIT_RATE = 0.90
+SELF_CHECK_TOLERANCE_MS = 50   # replay vs SDK detection: same packet, so timestamps nearly match
 
 
 class Recording:
@@ -36,6 +37,8 @@ class Recording:
         self.packets = []   # (t, phase, signal_ok, samples)
         self.cues = []      # t
         self.marks = []     # t
+        self.sdk_blinks = []  # t of blinks the SDK reported while recording
+        self.sdk_threshold = None
         self.phase_span = {}
         signal_known = False
         with open(path, newline="", encoding="utf-8") as f:
@@ -54,6 +57,10 @@ class Recording:
                     self.cues.append(t)
                 elif kind == "mark":
                     self.marks.append(t)
+                elif kind == "sdk_blink":
+                    self.sdk_blinks.append(t)
+                elif kind == "config" and row["value"].startswith("sdk_threshold="):
+                    self.sdk_threshold = int(row["value"].split("=", 1)[1])
         self.packets.sort(key=lambda p: p[0])
         if len(self.cues) == 0 or "still" not in self.phase_span:
             sys.exit(f"{path}: incomplete recording (needs the cued and still phases)")
@@ -172,6 +179,21 @@ def main():
             h, cf, sf, m = score(r, thr)
             hits, cued_fp, still_fp, marked = hits + h, cued_fp + cf, still_fp + sf, marked + m
         rows.append((thr, hits, cued_fp, still_fp, marked))
+
+    print("## Self-check: replay vs SDK\n")
+    print("Replays each recording at the threshold the SDK used and compares with the blinks the SDK reported.\n")
+    print("| Recording | SDK threshold | SDK blinks | Replay blinks | Matched | Result |")
+    print("|---|---|---|---|---|---|")
+    for r in recs:
+        if r.sdk_threshold is None:
+            print(f"| {r.path} | - | - | - | - | no config row (older recording) |")
+            continue
+        replayed = [t for t, _, _ in replay(r.packets, r.sdk_threshold)]
+        matched = sum(1 for t in replayed if any(abs(t - s) <= SELF_CHECK_TOLERANCE_MS for s in r.sdk_blinks))
+        ok = matched == len(replayed) == len(r.sdk_blinks)
+        print(f"| {r.path} | {r.sdk_threshold} | {len(r.sdk_blinks)} | {len(replayed)} | {matched} | "
+              f"{'identical' if ok else 'MISMATCH - do not trust the sweep'} |")
+    print()
 
     print("## Threshold sweep\n")
     print("| Threshold | Hits | Hit rate | False + (cued phase) | False + (still phase) | Marked blinks detected |")
