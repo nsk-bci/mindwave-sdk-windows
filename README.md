@@ -129,29 +129,6 @@ sdk.StateChanged += (_, state) =>
 };
 ```
 
-## Simulator (without a real device)
-
-```csharp
-using NeuroSky.Sdk;
-
-var simulator = new SimulatorTransport();
-simulator.SetMode(SimulatorTransport.Mode.Focused);
-
-await simulator.ConnectAsync("simulator");
-
-await foreach (var data in simulator.DataStream(cts.Token))
-{
-    Console.WriteLine($"Attention: {data.Attention}");
-}
-```
-
-| Mode | Attention | Meditation | Use case |
-|---|---|---|---|
-| `Random` | 0~100 (random) | 0~100 (random) | General testing |
-| `Focused` | 70~100 | 40~60 | Focused state UI testing |
-| `Relaxed` | 20~50 | 70~100 | Relaxed state UI testing |
-| `PoorSignal` | 0 | 0 | Signal loss / error handling test |
-
 ## BrainWaveData
 
 | Property | Type | Range | Description |
@@ -268,7 +245,6 @@ await sdk.SendCommandAsync(NeuroSkyCommand.StopRawEeg);
 | Transport | Method | Requirement |
 |---|---|---|
 | `BleTransport` | WinRT BLE GATT | Windows 10 1903+, BLE adapter |
-| `SimulatorTransport` | Virtual data | For development/testing |
 
 ## Project Structure
 
@@ -281,10 +257,8 @@ NeuroSky.Sdk/
 ├── Transport/
 │   ├── ITransport.cs           Common interface, ConnectionState enum
 │   └── BleTransport.cs         WinRT BLE GATT implementation
-├── Parser/
-│   └── ThinkGearParser.cs      ThinkGear packet parser
-└── Simulator/
-    └── SimulatorTransport.cs   Simulator for development
+└── Parser/
+    └── ThinkGearParser.cs      ThinkGear packet parser
 
 NeuroSky.Sample/
 └── Program.cs                  Console sample app

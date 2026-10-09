@@ -33,4 +33,9 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- SimulatorTransport is internal and test-only -->
+    <InternalsVisibleTo Include="NeuroSky.Tests" />
+  </ItemGroup>
+
 </Project>
