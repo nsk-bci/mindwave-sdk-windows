@@ -83,6 +83,13 @@ public sealed class NeuroSkySdk : IAsyncDisposable
         return await tcs.Task;
     }
 
+    /// <summary>Raw notifications before parsing. Internal: packet-capture tool only.</summary>
+    internal event Action<Guid, byte[]>? PacketReceived
+    {
+        add => _ble.PacketReceived += value;
+        remove => _ble.PacketReceived -= value;
+    }
+
     public async Task DisconnectAsync() => await _ble.DisconnectAsync();
 
     public async Task SendCommandAsync(byte cmd) => await _ble.SendCommandAsync(cmd);

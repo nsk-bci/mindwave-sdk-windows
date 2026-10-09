@@ -147,11 +147,19 @@ public sealed class BleTransport : ITransport
             GattClientCharacteristicConfigurationDescriptorValue.Notify);
     }
 
+    /// <summary>
+    /// Every notification exactly as received from the characteristic, before parsing.
+    /// Internal: for the packet-capture tool in NeuroSky.Sample only.
+    /// </summary>
+    internal event Action<Guid, byte[]>? PacketReceived;
+
     private void OnCharacteristicValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
     {
         var reader = DataReader.FromBuffer(args.CharacteristicValue);
         var bytes = new byte[reader.UnconsumedBufferLength];
         reader.ReadBytes(bytes);
+
+        PacketReceived?.Invoke(sender.Uuid, (byte[])bytes.Clone());
 
         var data = _parser.Parse(sender.Uuid, bytes);
         if (data is not null)

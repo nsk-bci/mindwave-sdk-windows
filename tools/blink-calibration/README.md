@@ -1,45 +1,96 @@
-# Blink threshold calibration
+# On-device capture session (v7.0.0 release gate)
 
-The blink detector's threshold (minimum raw EEG peak-to-peak amplitude) must be measured on a real
-MindWave Mobile 2 before v7.0.0 ships. The current value, **3000**, is a provisional estimate: the web
-tutorial's 600 is in Web Bluetooth raw units, roughly 1/5 of the native units the SDKs use.
+One run of the tool collects everything v7.0.0 still needs from a real MindWave Mobile 2:
+
+| # | What | Why |
+|---|---|---|
+| 1 | Blink calibration: 30 cued blinks + 60 s without blinking | The blink threshold (**3000**) is a provisional estimate |
+| 2 | Raw EEG notifications, byte-for-byte | All SDKs assume raw packets have **no prefix** (offset 0, big-endian). No capture has confirmed this. Blink detection builds on raw EEG, and so does 6 EI in v7.1.0. **v7.0.0 does not ship until this is confirmed.** |
+| 3 | 0xEC packets with non-zero bands | No 0xEC capture exists yet, so the parser tests for 0xEC are synthetic |
+| 4 | PoorSignal 200 (headset off) | Signal-quality tests, and the blink gate |
+| 5 | 0xEB → 0xEC order and spacing | Decides how to fix the 0xEB emission mismatch between platforms (on hold until this data exists) |
+
+Every BLE notification is written **exactly as received**, as hex (`pkt` rows), next to the parsed
+values. The raw bytes are captured before any SDK parser touches them.
 
 All three SDKs (Android, Apple, Windows) parse the same BLE bytes the same way and run the same
-`BlinkDetector`. **One measurement sets the threshold for all three.**
+`BlinkDetector`. **One session sets the threshold and checks the layout for all three.**
 
 ## What you need
 
 - A MindWave Mobile 2, charged, with a clean sensor tip
 - A Windows 10/11 PC with Bluetooth LE and the .NET 8 SDK
 - Python 3.8 or later (standard library only)
-- About 10 minutes per recording. Do at least **2 recordings**; 2–3 different people is better.
+- About 10 minutes per session. Do at least **2 sessions**; 2–3 different people is better.
 
-## Procedure
-
-### 1. Record
+## 1. Record
 
 ```powershell
 # from the repository root
-dotnet run --project NeuroSky.Sample -- calibrate-blink AA:BB:CC:DD:EE:FF rec1.csv 60
-#                                                     ^ headset MAC    ^ file  ^ mains Hz (50 or 60)
+dotnet run --project NeuroSky.Sample -- calibrate-blink AA:BB:CC:DD:EE:FF session1.csv 60
+#                                                     ^ headset MAC    ^ file      ^ mains Hz (50 or 60)
 ```
 
-The program walks you through four phases:
+The tool prints each step and what to do; you can run it on your own.
 
-| Phase | Length | What to do |
-|---|---|---|
-| Signal check | up to 60 s | Wear the headset until PoorSignal ≤ 50 (moisten the sensor if needed) |
-| Settle | 10 s | Look at the screen, blink normally |
-| **Cued blinks** | 30 cues × 3 s | Blink **once, firmly** at each `>>> BLINK <<<` + beep; try not to blink between cues |
-| **No blinking** | 60 s | Keep your eyes open; if you blink anyway, press **SPACE** immediately |
+| Step | Length | What to do | Collects |
+|---|---|---|---|
+| 1. Put the headset on | up to 60 s | Wear it until PoorSignal ≤ 50 (moisten the sensor if needed) | — |
+| 2. Settle | 10 s | Look at the screen, blink normally | 2, 3, 5 |
+| 3. **Cued blinks** | 30 × 3 s | Blink **once, firmly** at each `>>> BLINK <<<` + beep; don't blink between cues | 1, 2, 3, 5 |
+| 4. **No blinking** | 60 s | Keep your eyes open; if you blink anyway, press **SPACE** immediately | 1, 2, 3, 5 |
+| 5. **Take the headset off** | until PoorSignal 200, then 10 s | Lay it on the table, keep it switched **on** | 4 |
+| 6. Checklist | — | Read the summary | — |
 
-Keep the conditions realistic: sit as you would during normal use, and don't clench your jaw or
-move your head. Jaw and head movement also produce large raw EEG swings.
+Raw and eSense packets (items 2, 3, 5) are recorded during the whole session. The checklist at the end
+shows `[OK]` / `[MISSING]` for each item. If something is missing, run the session again.
 
-### 2. Analyse
+Keep the conditions realistic: sit as you would during normal use, and don't clench your jaw or move
+your head. Jaw and head movement also produce large raw EEG swings.
+
+The CSV stays outside the repository: the Owner keeps the originals. Only the analysis output goes into
+PRs.
+
+## 2. Check the packet layout (items 2–5)
 
 ```powershell
-python tools/blink-calibration/analyze.py rec1.csv rec2.csv rec3.csv
+python tools/blink-calibration/inspect_packets.py session1.csv --fixtures session1-fixtures.txt
+```
+
+This reads only the `pkt` rows and does not rely on the SDK parsers.
+
+**Raw EEG layout:** the verdict is **CONFIRMED** only if all of these hold:
+- Packets are always 20 bytes
+- No byte position stays constant. A constant position would look like a prefix or header.
+- High bytes sit at even positions: they change slowly, while the low bytes look random. That means
+  big-endian from byte 0.
+- Big-endian decoding is much smoother than little-endian.
+- No jump at packet boundaries under offset-0 decoding. A jump would mean extra bytes at the start or
+  end of each packet.
+
+It also reports how many decoded samples are negative and whether `0x8000` (−32768) occurs.
+
+**eSense:**
+- The first two bytes of every packet (the SDKs assume `00 00`)
+- The type distribution
+- 0xEC packets with non-zero bands
+- PoorSignal values, including 200
+- The code bytes in front of each value
+- 0xEB → 0xEC pairing, spacing, and orphans (0xEB with no 0xEC, which matters for the emission fix)
+
+**Fixtures** (`--fixtures`): representative packets as hex — 0xEA worn and off, 0xEB, 0xEC, and five
+consecutive raw packets with negative samples. These become the capture-based parser tests, in the
+same format as the Windows v2.0.4 tests.
+
+If the raw verdict is **NOT CONFIRMED**, stop: the raw parsers of all three SDKs, blink detection, and
+the threshold analysis would all be built on the wrong decoding.
+
+## 3. Choose the blink threshold (item 1)
+
+Only after the raw layout is confirmed:
+
+```powershell
+python tools/blink-calibration/analyze.py session1.csv session2.csv session3.csv
 ```
 
 The script replays the SDK's detection algorithm over the recordings for every threshold from 500 to
@@ -47,12 +98,12 @@ The script replays the SDK's detection algorithm over the recordings for every t
 
 - **Amplitude profile**: the peak-to-peak of each cued blink, and of the no-blink signal. A good
   threshold sits between the no-blink maximum and the weakest blink.
-- **Threshold sweep**: for each threshold, the hit rate (cued blinks detected), false positives in
-  the cued phase (detections outside any cue window), and false positives in the no-blink phase
-  (detections not explained by a SPACE mark).
 - **Self-check**: replays each recording at the threshold the SDK used while recording, and compares
   the result with the blinks the SDK itself reported (`sdk_blink` rows). "identical" shows on real data
   that the script's algorithm matches the SDK's. If it says MISMATCH, don't use the sweep.
+- **Threshold sweep**: for each threshold, the hit rate (cued blinks detected), false positives in
+  the cued phase (detections outside any cue window), and false positives in the no-blink phase
+  (detections not explained by a SPACE mark).
 - **Recommendation**: the middle of the range that has zero false positives (both phases) and a hit
   rate of at least 90 %.
 
@@ -63,34 +114,35 @@ The script replays the SDK's detection algorithm over the recordings for every t
 | No-blink phase, SPACE − 1500 ms … SPACE + 300 ms | Marked involuntary blink, excluded |
 | No-blink phase, anything else | False positive |
 
-### 3. Decide and record
+### Acceptance criteria
 
-Acceptance criteria (the recommendation in `analyze.py` applies exactly these):
+`analyze.py` applies exactly these:
 
-- Hit rate **≥ 90 %** over all cued blinks (27/30 per recording)
+- Hit rate **≥ 90 %** over all cued blinks (27/30 per session)
 - **0** false positives in the no-blink phase
 - **0** false positives in the cued phase (detections outside every cue window)
-- Self-check reports **identical** for every recording (see below)
+- Self-check reports **identical** for every session
 
 Then:
 
 1. Set `DefaultThreshold` / `DEFAULT_THRESHOLD` / `defaultThreshold` to the chosen value in all three
    SDKs, and update the "Threshold" row in each README.
-2. Paste the analysis output (amplitude profile, the sweep rows around the chosen value, and the
-   recommendation) into the Task 3 PR descriptions as the basis for the value.
+2. Paste the analysis output (amplitude profile, self-check, the sweep rows around the chosen value,
+   and the recommendation) into the Task 3 PR descriptions as the basis for the value.
 
-If no threshold meets the criteria, the analysis says so. Usually the cause is poor electrode contact
-or movement artifacts. Record again rather than relaxing the criteria.
+If no threshold meets the criteria, the analysis says so. Usually the cause is poor electrode contact or
+movement artifacts. Record again rather than relaxing the criteria.
 
 ## Recording format
 
-`t_ms,phase,type,poor_signal,value`
+`t_ms,phase,type,poor_signal,value` · phases: `connect`, `settle`, `cued`, `still`, `off`, `done`
 
 | `type` | `value` |
 |---|---|
-| `raw` | The packet's 10 raw EEG samples, space-separated |
-| `esense` | — (`poor_signal` holds the latest PoorSignal) |
+| `pkt` | `<characteristic>:<hex>`: a notification exactly as received; `raw` or `esense`, otherwise the UUID |
+| `raw` | The SDK's parsed raw EEG samples for that packet, space-separated |
+| `esense` | — (`poor_signal` holds the parsed PoorSignal) |
 | `cue` | Cue number 1–30 |
 | `mark` | SPACE press number |
-| `config` | `sdk_threshold=<n>`: the SDK's threshold while recording |
+| `config` | `sdk_threshold=<n>`: the SDK's blink threshold while recording |
 | `sdk_blink` | Strength of a blink the SDK reported at that threshold (used by the self-check) |
