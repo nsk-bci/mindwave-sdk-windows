@@ -103,7 +103,42 @@ def raw_section(raw):
     boundary_ok = b0 <= 2 * w0 if w0 else True
     lengths_ok = set(lengths) == {20}
     no_constant = not constant
-    verdict = "CONFIRMED" if alignment_ok and boundary_ok and lengths_ok and no_constant else "NOT CONFIRMED"
+
+    # The dangerous case: a 2-byte prefix (or suffix) + 9 samples = 20 bytes. With the SDK decoding,
+    # 9 of 10 samples are right and the waveform looks fine; the only trace is a glitch at the same
+    # sample index in every packet. A prefix that changes (e.g. a counter) also passes the constant-
+    # byte check, so test the per-index profile directly.
+    def index_profile(offset, n_samples):
+        per = [[] for _ in range(n_samples)]
+        prev_last = None
+        for p in raw:
+            s = decode(p, offset, True)[:n_samples]
+            if len(s) < n_samples:
+                continue
+            if prev_last is not None:
+                per[0].append(abs(s[0] - prev_last))
+            for k in range(1, n_samples):
+                per[k].append(abs(s[k] - s[k - 1]))
+            prev_last = s[-1]
+        return [statistics.median(x) if x else 0 for x in per]
+
+    def glitch_ratio(profile):
+        worst = max(range(len(profile)), key=lambda k: profile[k])
+        rest = [v for k, v in enumerate(profile) if k != worst]
+        base = statistics.median(rest) if rest else 0
+        return worst, (profile[worst] / base if base else float("inf"))
+
+    sdk_profile = index_profile(0, 10)
+    worst_k, sdk_glitch = glitch_ratio(sdk_profile)
+    flat_ok = sdk_glitch <= 2
+    pre_profile = index_profile(2, 9)       # hypothesis: 2-byte prefix + 9 samples
+    suf_profile = index_profile(0, 9)       # hypothesis: 9 samples + 2-byte suffix
+    _, pre_glitch = glitch_ratio(pre_profile)
+    _, suf_glitch = glitch_ratio(suf_profile)
+
+    prefix_excluded = flat_ok and pre_glitch > 2 and suf_glitch > 2
+    verdict = ("CONFIRMED" if alignment_ok and boundary_ok and lengths_ok and no_constant and prefix_excluded
+               else "NOT CONFIRMED")
     sdk = decode(raw[0], 0, True)
     print(f"- Byte roughness: even positions {even_r:.0f}, odd positions {odd_r:.0f} — "
           f"{'high bytes at even positions (big-endian from byte 0) - OK' if high_bytes_even else 'NOT the SDK layout'}")
@@ -114,6 +149,21 @@ def raw_section(raw):
     print(f"- Constant byte positions: {'none - OK' if no_constant else constant}")
     print(f"- Packet length: {'always 20 - OK' if lengths_ok else dict(lengths)}")
     print(f"- Samples per packet with the SDK decoding: {len(sdk)}")
+    print(f"- Per-sample-index roughness, SDK decoding (index 0 = across the packet boundary): "
+          f"{[round(v) for v in sdk_profile]}")
+    print(f"  worst index {worst_k} is {sdk_glitch:.1f}x the others — "
+          f"{'no periodic glitch - OK' if flat_ok else 'PERIODIC GLITCH every 10 samples'}")
+    if not alignment_ok:
+        prefix_status = "CANNOT TELL (byte alignment/endianness already differs from the SDK)"
+    elif flat_ok and pre_glitch > 2 and suf_glitch > 2:
+        prefix_status = "EXCLUDED"
+    elif flat_ok:
+        prefix_status = "NOT DECIDED (no hypothesis shows a glitch - signal too flat? record again)"
+    else:
+        prefix_status = "NOT EXCLUDED"
+    print(f"- **2-byte prefix + 9 samples (and 9 samples + 2-byte suffix): "
+          f"{prefix_status}** — SDK decoding glitch {sdk_glitch:.1f}x; "
+          f"under the prefix hypothesis {pre_glitch:.1f}x, under the suffix hypothesis {suf_glitch:.1f}x")
     all_sdk = [v for p in raw for v in decode(p, 0, True)]
     print(f"- With the SDK decoding: {sum(v < 0 for v in all_sdk)} negative samples of {len(all_sdk)}, "
           f"range {min(all_sdk)} .. {max(all_sdk)}, exact -32768 (0x8000): {all_sdk.count(-32768)}")

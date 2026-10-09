@@ -216,10 +216,15 @@ def main():
         print(f"Conflict: zero false positives needs >= {lowest_clean}, but a {TARGET_HIT_RATE:.0%} hit rate needs "
               f"<= {highest_good}. Collect more recordings before choosing.")
         return
-    pick = (lowest_clean + highest_good) // 2 // 50 * 50
-    hit = next(r for r in rows if r[0] >= pick)
+    mid = (lowest_clean + highest_good) / 2
+    passing = [r[0] for r in rows if r in clean and r in good]
+    if not passing:
+        print("No single threshold has both zero false positives and a 90% hit rate. Collect more recordings.")
+        return
+    pick = min(passing, key=lambda v: abs(v - mid))
+    hit = next(r for r in rows if r[0] == pick)
     print(f"- Zero false positives from **{lowest_clean}**; hit rate >= {TARGET_HIT_RATE:.0%} up to **{highest_good}**")
-    print(f"- Suggested threshold: **{pick}** (middle of the safe range; ~{hit[1] / total_cues:.0%} hits at {hit[0]})")
+    print(f"- Suggested threshold: **{pick}** (sweep value nearest the middle of the safe range; {hit[1] / total_cues:.0%} hits, 0 false positives)")
 
 
 if __name__ == "__main__":

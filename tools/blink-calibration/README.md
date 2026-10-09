@@ -19,8 +19,12 @@ All three SDKs (Android, Apple, Windows) parse the same BLE bytes the same way a
 ## What you need
 
 - A MindWave Mobile 2, charged, with a clean sensor tip
-- A Windows 10/11 PC with Bluetooth LE and the .NET 8 SDK
-- Python 3.8 or later (standard library only)
+- A Windows 10/11 PC with Bluetooth LE and the **.NET 8 SDK** (`winget install Microsoft.DotNet.SDK.8`;
+  open a new terminal afterwards so `dotnet` is on PATH, then check with `dotnet --list-sdks`)
+- **Python 3.8 or later.** Standard library only: no packages, no `requirements.txt`. On Windows, run
+  `py` instead of `python` if `python` is not found.
+- The `feat/eye-blink` branch checked out. No other setup is needed; the first `dotnet run` restores
+  and builds everything.
 - About 10 minutes per session. Do at least **2 sessions**; 2–3 different people is better.
 
 ## 1. Record
@@ -30,6 +34,10 @@ All three SDKs (Android, Apple, Windows) parse the same BLE bytes the same way a
 dotnet run --project NeuroSky.Sample -- calibrate-blink AA:BB:CC:DD:EE:FF session1.csv 60
 #                                                     ^ headset MAC    ^ file      ^ mains Hz (50 or 60)
 ```
+
+Don't know the headset's MAC address? Put `scan` in its place: the tool finds the headset by its name
+"MindWave Mobile", prints the address, and continues:
+`dotnet run --project NeuroSky.Sample -- calibrate-blink scan session1.csv 60`
 
 The tool prints each step and what to do; you can run it on your own.
 
@@ -67,6 +75,13 @@ This reads only the `pkt` rows and does not rely on the SDK parsers.
 - Big-endian decoding is much smoother than little-endian.
 - No jump at packet boundaries under offset-0 decoding. A jump would mean extra bytes at the start or
   end of each packet.
+- **2-byte prefix + 9 samples is excluded** (also 9 samples + 2-byte suffix). These are the dangerous
+  cases: they fill exactly 20 bytes, 9 of 10 samples decode correctly, and the waveform looks fine.
+  Their only trace is a glitch at the same sample index in every packet. A prefix that changes, such as
+  a counter, also passes the constant-byte check. So the script measures roughness per sample index,
+  and it re-decodes under each hypothesis. The hypothesis is ruled out only when the SDK decoding is
+  flat **and** both hypotheses show a glitch. The output says `EXCLUDED`, `NOT EXCLUDED`, or
+  `CANNOT TELL`.
 
 It also reports how many decoded samples are negative and whether `0x8000` (−32768) occurs.
 
