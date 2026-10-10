@@ -12,9 +12,13 @@ Releases before 7.0.0 are documented in the [legacy changelog (v2.0.4)](https://
 - Bluetooth Classic transport (BLE-only from v7.0.0): `BtClassicTransport`, `TransportMode`,
   the `mode` argument of `NeuroSkySdk.ConnectAsync()`, `NeuroSkyUuid.Spp`, and
   `ThinkGearParser.ParseByte()` (ThinkGear serial stream)
+- `BrainWaveData.EyeBlink` (never populated over BLE) — use `BlinkStream()`
 
 ### Added
-- eyeBlink parsing
+- Eye blink detection: `NeuroSkySdk.BlinkStream()` yields a `BlinkEvent(TimestampMs, Strength, Sequence)` per blink.
+  `BlinkDetector` watches raw EEG peak-to-peak amplitude (100-sample window, 600 ms cooldown, 500 ms warm-up;
+  threshold provisional until measured on a device). Requires the Raw EEG stream; paused while
+  `PoorSignal` > 50. `ITransport` gains `BlinkStream()`.
 
 ## [7.0.0] - TBD
 

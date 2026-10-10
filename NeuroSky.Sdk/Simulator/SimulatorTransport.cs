@@ -24,6 +24,14 @@ public sealed class SimulatorTransport : ITransport
         }
     }
 
+    /// <summary>The simulator does not generate blinks; this stream completes immediately.</summary>
+    public async IAsyncEnumerable<BlinkEvent> BlinkStream(
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        await Task.CompletedTask;
+        yield break;
+    }
+
     public async Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
     {
         SetState(ConnectionState.Connecting);

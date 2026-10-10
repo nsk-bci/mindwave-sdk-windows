@@ -91,7 +91,7 @@ The MindWave Mobile headset contains a single dry electrode on the forehead (FP1
 - **8 frequency band powers** — Delta, Theta, Alpha (Low/High), Beta (Low/High), Gamma (Low/Mid)
 - **eSense™ Attention** — NeuroSky's proprietary attention index (0~100)
 - **eSense™ Meditation** — NeuroSky's proprietary relaxation index (0~100)
-- **Eye blink detection** — intensity 0~255
+- **Eye blink detection** — detected from raw EEG; delivered as `BlinkEvent`s on `BlinkStream()`
 - **Signal quality** — 0 (perfect contact) to 200 (no signal)
 
 ---
@@ -492,7 +492,6 @@ public record BrainWaveData
     public int  LowGamma   { get; init; }   // 31~39.75 Hz
     public int  MidGamma   { get; init; }   // 41~49.75 Hz
     public IReadOnlyList<int> RawEeg { get; init; }   // 10 samples/packet, 512Hz
-    public int  EyeBlink   { get; init; }   // 0 = no blink, 1~255 = intensity
 
     public SignalQuality SignalQuality { get; }  // derived from PoorSignal
 }
@@ -506,7 +505,7 @@ public record BrainWaveData
 | `Attention`, `Meditation` | ~1 Hz | eSense™ computed once per second |
 | `Delta` through `MidGamma` | ~1 Hz | FFT computed once per second |
 | `RawEeg` | 512 Hz total | 10 samples per BLE notify, ~51 packets/sec |
-| `EyeBlink` | Event-driven | Only non-zero when a blink is detected |
+| `BlinkStream()` (`BlinkEvent`) | Event-driven | Separate stream; one event per detected blink. Requires `StartRawEeg` |
 
 > **Important:** When `RawEeg` packets arrive, `Attention`, `Meditation`, and frequency band fields will be `0` in that `BrainWaveData` object — they are only populated in the eSense packet which arrives separately. The parser **does** accumulate state across packets in BLE mode, so the most recently seen value remains in subsequent emits — but a fresh `RawEeg`-only emit will not refresh the eSense fields. Filter by checking which fields are non-zero, or handle each packet type independently.
 
@@ -1167,6 +1166,7 @@ public sealed class NeuroSkySdk : IAsyncDisposable
 | `FindDeviceAddressAsync(string, int, CancellationToken)` | `Task<string?>` | Scan BLE advertisements; resolve device name → MAC. Default timeout 10 000 ms. Returns `null` on timeout. |
 | `DisconnectAsync()` | `Task` | Gracefully disconnect |
 | `DataStream(CancellationToken)` | `IAsyncEnumerable<BrainWaveData>` | Async stream of EEG packets; ends when connection drops or token cancels |
+| `BlinkStream(CancellationToken)` | `IAsyncEnumerable<BlinkEvent>` | One `BlinkEvent(TimestampMs, Strength, Sequence)` per detected blink. Needs `StartRawEeg`; silent while `SignalQuality` is `Poor`/`NoSignal` |
 | `SendCommandAsync(byte)` | `Task` | Send a control byte to the headset |
 | `DisposeAsync()` | `ValueTask` | Disconnect and release all Bluetooth resources |
 
@@ -1191,7 +1191,6 @@ Immutable record emitted by `DataStream()`.
 | `LowGamma` | `int` | 0~∞ | Low Gamma, 31~39.75 Hz |
 | `MidGamma` | `int` | 0~∞ | Mid Gamma, 41~49.75 Hz |
 | `RawEeg` | `IReadOnlyList<int>` | -32768~32767 | 512 Hz ADC samples (10 per packet) |
-| `EyeBlink` | `int` | 0~255 | Eye blink intensity; 0 = no blink |
 | `SignalQuality` | `SignalQuality` | enum | Derived from `PoorSignal` |
 
 ---
@@ -1236,6 +1235,7 @@ public interface ITransport : IAsyncDisposable
     event EventHandler<ConnectionState> StateChanged;
 
     IAsyncEnumerable<BrainWaveData> DataStream(CancellationToken ct = default);
+    IAsyncEnumerable<BlinkEvent> BlinkStream(CancellationToken ct = default);
     Task ConnectAsync(string deviceAddress, CancellationToken ct = default);
     Task DisconnectAsync();
     Task SendCommandAsync(byte cmd);

@@ -33,4 +33,9 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Raw packet hook (NeuroSkySdk.PacketReceived) for the capture tool in the sample -->
+    <InternalsVisibleTo Include="NeuroSky.Sample" />
+  </ItemGroup>
+
 </Project>

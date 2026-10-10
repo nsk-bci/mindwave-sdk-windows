@@ -17,6 +17,7 @@
     <!-- Public API surface — preserve for consumers that reference by name -->
     <type fullname="NeuroSky.Sdk.NeuroSkySdk" preserve="all" />
     <type fullname="NeuroSky.Sdk.BrainWaveData" preserve="all" />
+    <type fullname="NeuroSky.Sdk.BlinkEvent" preserve="all" />
     <type fullname="NeuroSky.Sdk.SignalQuality" preserve="all" />
     <type fullname="NeuroSky.Sdk.ConnectionState" preserve="all" />
     <type fullname="NeuroSky.Sdk.ITransport" preserve="all" />

@@ -3,10 +3,41 @@ namespace NeuroSky.Sdk;
 /// <summary>
 /// NeuroSky ThinkGear packet parser.
 /// Feed BLE characteristic notifications into <see cref="Parse"/>.
+/// Raw EEG samples also run through a <see cref="BlinkDetector"/>; each detected blink is passed to the
+/// <c>onBlink</c> callback as a <see cref="BlinkEvent"/>. Detection is off until the first 0xEA packet reports
+/// signal quality, and while <see cref="BrainWaveData.PoorSignal"/> exceeds <c>maxPoorSignal</c> — electrode
+/// contact noise looks like a blink.
 /// </summary>
 public sealed class ThinkGearParser
 {
+    /// <summary>PoorSignal above this (Poor, NoSignal) pauses blink detection.</summary>
+    public const int DefaultMaxPoorSignal = 50;
+
     private BrainWaveData _current = new();
+    private readonly BlinkDetector _blinkDetector;
+    private readonly int _maxPoorSignal;
+    private readonly Action<BlinkEvent>? _onBlink;
+    private bool _signalKnown;
+    private int _blinkSequence;
+
+    public ThinkGearParser(
+        BlinkDetector? blinkDetector = null,
+        int maxPoorSignal = DefaultMaxPoorSignal,
+        Action<BlinkEvent>? onBlink = null)
+    {
+        _blinkDetector = blinkDetector ?? new BlinkDetector();
+        _maxPoorSignal = maxPoorSignal;
+        _onBlink = onBlink;
+    }
+
+    /// <summary>Clears accumulated data, the blink count, and the detector for a new connection.</summary>
+    public void Reset()
+    {
+        _current = new BrainWaveData();
+        _signalKnown = false;
+        _blinkSequence = 0;
+        _blinkDetector.Reset();
+    }
 
     public BrainWaveData? Parse(Guid uuid, byte[] bytes)
     {
@@ -24,13 +55,13 @@ public sealed class ThinkGearParser
 
         return (bytes[2] & 0xFF) switch
         {
-            0xEA when bytes.Length >= 11 => _current = _current with
+            0xEA when bytes.Length >= 11 => OnSignalQuality(_current = _current with
             {
                 PoorSignal = bytes[6] & 0xFF,
                 Attention  = bytes[8] & 0xFF,
                 Meditation = bytes[10] & 0xFF,
                 Timestamp  = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            },
+            }),
             0xEB when bytes.Length >= 20 => _current = _current with
             {
                 Delta    = Read3Bytes(bytes, 5),
@@ -67,7 +98,25 @@ public sealed class ThinkGearParser
             RawEeg    = samples,
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
+        DetectBlink(samples);
         return _current;
+    }
+
+    private BrainWaveData OnSignalQuality(BrainWaveData data)
+    {
+        _signalKnown = true;
+        return data;
+    }
+
+    private void DetectBlink(IReadOnlyList<int> samples)
+    {
+        if (!_signalKnown || _current.PoorSignal > _maxPoorSignal)
+        {
+            _blinkDetector.Reset();  // warm up again once the signal recovers
+            return;
+        }
+        int strength = _blinkDetector.Process(samples);
+        if (strength > 0) _onBlink?.Invoke(new BlinkEvent(_current.Timestamp, strength, ++_blinkSequence));
     }
 
     private static int Read3Bytes(byte[] bytes, int offset)

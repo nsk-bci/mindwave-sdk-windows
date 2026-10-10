@@ -1,4 +1,36 @@
+using NeuroSky.Sample;
 using NeuroSky.Sdk;
+
+// ── Blink threshold calibration (real device) ────────────────────────────────
+// dotnet run --project NeuroSky.Sample -- calibrate-blink <MAC|scan> [output.csv] [50|60]
+// Procedure: tools/blink-calibration/README.md
+if (args.Length > 0 && args[0] == "calibrate-blink")
+{
+    if (args.Length < 2)
+    {
+        Console.WriteLine("Usage: dotnet run --project NeuroSky.Sample -- calibrate-blink <MAC|scan> [output.csv] [50|60]");
+        Console.WriteLine("       Use \"scan\" instead of a MAC address to find the headset by its name \"MindWave Mobile\".");
+        return;
+    }
+    string address = args[1];
+    if (address.Equals("scan", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.WriteLine("Scanning for \"MindWave Mobile\" (10 s) — make sure the headset is switched on ...");
+        await using var finder = new NeuroSkySdk();
+        string? found = await finder.FindDeviceAddressAsync("MindWave Mobile");
+        if (found is null)
+        {
+            Console.WriteLine("Headset not found. Switch it on (blue LED), move closer, and try again.");
+            return;
+        }
+        Console.WriteLine($"Found {found} — you can pass this MAC address directly next time.");
+        address = found;
+    }
+    string output = args.Length > 2 ? args[2] : $"blink-calibration-{DateTime.Now:yyyyMMdd-HHmmss}.csv";
+    int notchHz = args.Length > 3 && args[3] == "50" ? 50 : 60;
+    await BlinkCalibration.RunAsync(address, output, notchHz);
+    return;
+}
 
 // ── Simulator test ────────────────────────────────────────────────────────────
 Console.WriteLine("=== NeuroSky MindWave Windows SDK - Simulator ===");
