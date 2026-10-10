@@ -10,3 +10,10 @@ docs/node_modules/
 docs/package-lock.json
 docs/package.json
 docs/Downloads/
+
+# Internal reference material (not for this public repository; kept outside it).
+# Wildcards on purpose: the patterns should not spell out internal document names.
+# Character classes keep the match case-insensitive on case-sensitive file systems too.
+[Nn][Ss][Kk]_[Ee][Ii]*
+[Nn][Ss]_[Mm][Ww][Mm]2_*
+[Ss][Dd][Kk]_[Uu][Pp][Dd][Aa][Tt][Ee]_[Pp][Ll][Aa][Nn]_*
