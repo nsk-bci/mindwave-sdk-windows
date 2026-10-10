@@ -5,7 +5,7 @@ One run of the tool collects everything v7.0.0 still needs from a real MindWave 
 | # | What | Why |
 |---|---|---|
 | 1 | Blink calibration: 30 cued blinks + 60 s without blinking | The blink threshold (**3000**) is a provisional estimate |
-| 2 | Raw EEG notifications, byte-for-byte | All SDKs assume raw packets have **no prefix** (offset 0, big-endian). No capture has confirmed this. Blink detection builds on raw EEG, and so does 6 EI in v7.1.0. **v7.0.0 does not ship until this is confirmed.** |
+| 2 | Raw EEG notifications, byte-for-byte | All SDKs assume raw packets have **no prefix** (offset 0, big-endian). No capture has confirmed this. Blink detection builds on raw EEG. **v7.0.0 does not ship until this is confirmed.** |
 | 3 | 0xEC packets with non-zero bands | No 0xEC capture exists yet, so the parser tests for 0xEC are synthetic |
 | 4 | PoorSignal 200 (headset off) | Signal-quality tests, and the blink gate |
 | 5 | 0xEB → 0xEC order and spacing | Decides how to fix the 0xEB emission mismatch between platforms (on hold until this data exists) |
