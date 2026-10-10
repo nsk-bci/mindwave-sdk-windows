@@ -52,12 +52,11 @@ pdf_options:
 10. [EEG Frequency Bands Explained](#10-eeg-frequency-bands-explained)
 11. [Signal Quality](#11-signal-quality)
 12. [Commands](#12-commands)
-13. [Simulator — Develop Without Hardware](#13-simulator--develop-without-hardware)
-14. [Error Handling & Reconnection](#14-error-handling--reconnection)
-15. [Advanced Patterns](#15-advanced-patterns)
-16. [Troubleshooting](#16-troubleshooting)
-17. [Testing](#17-testing)
-18. [API Reference](#18-api-reference)
+13. [Error Handling & Reconnection](#13-error-handling--reconnection)
+14. [Advanced Patterns](#14-advanced-patterns)
+15. [Troubleshooting](#15-troubleshooting)
+16. [Testing](#16-testing)
+17. [API Reference](#17-api-reference)
 
 <div class="page-break"></div>
 
@@ -78,7 +77,6 @@ This SDK eliminates TGC entirely by communicating directly with the MindWave Mob
 | No TGC dependency | Communicates with hardware directly via WinRT |
 | BLE only | No Windows pairing required; Bluetooth Classic is not supported |
 | Async stream API | `IAsyncEnumerable<BrainWaveData>` — native `await foreach`, cancel via `CancellationToken` |
-| Built-in Simulator | Full data simulation without any hardware |
 | Trimmer / AOT safe | Ships an internal `TrimmerRootDescriptor` — no consumer setup required |
 | .NET 8 / C# 12 | Modern language features, nullable annotations, file-scoped namespaces |
 | NuGet distribution | One-line package reference: `NeuroSky.MindWave.Sdk` |
@@ -120,8 +118,6 @@ The MindWave Mobile headset contains a single dry electrode on the forehead (FP1
         │   │    WinRT BLE GATT                       │
         │   │    (Windows.Devices.Bluetooth +         │
         │   │     GenericAttributeProfile)            │
-        │   └── SimulatorTransport                    │
-        │        (virtual data, no hardware)          │
         │          ↓                                  │
         │   ThinkGearParser                           │
         │    decodes 0xEA / 0xEB / 0xEC packets       │
@@ -703,84 +699,7 @@ await sdk.SendCommandAsync(NeuroSkyCommand.StartESense);
 
 ---
 
-## 13. Simulator — Develop Without Hardware
-
-`SimulatorTransport` generates synthetic EEG data without any MindWave Mobile hardware. It implements the same `ITransport` interface as the real transports, so your application code remains unchanged between development and production.
-
-### Why use the Simulator
-
-- **No hardware required** — develop and test UI, data pipelines, and business logic before the headset arrives
-- **Predictable data** — use `Focused` mode to always produce high-attention data for UI testing
-- **Edge case testing** — `PoorSignal` mode tests your error-handling and reconnect logic
-- **CI/CD pipelines** — run automated tests on build servers without Bluetooth hardware
-
-### Basic usage
-
-```csharp
-using NeuroSky.Sdk;
-
-var simulator = new SimulatorTransport();
-simulator.SetMode(SimulatorTransport.Mode.Focused);
-
-await simulator.ConnectAsync("simulator");   // any string accepted; ~500 ms
-
-await foreach (var data in simulator.DataStream(cts.Token))
-{
-    Console.WriteLine($"[SIM] Attention: {data.Attention}, " +
-                      $"Meditation: {data.Meditation}");
-}
-```
-
-### Simulator modes
-
-| Mode | Attention | Meditation | PoorSignal | Use case |
-|---|---|---|---|---|
-| `Random` | 0~100 (random) | 0~100 (random) | 0~30 | General integration testing |
-| `Focused` | 70~100 | 40~60 | 0 | High-attention UI testing |
-| `Relaxed` | 20~50 | 70~100 | 0 | High-meditation UI testing |
-| `PoorSignal` | 0 | 0 | 150~200 | Signal loss and error handling |
-
-### Switching modes at runtime
-
-```csharp
-var simulator = new SimulatorTransport();
-simulator.SetMode(SimulatorTransport.Mode.PoorSignal);
-await simulator.ConnectAsync("simulator");
-
-await Task.Delay(5000);
-simulator.SetMode(SimulatorTransport.Mode.Focused);
-```
-
-### Dependency injection — swap simulator and real SDK
-
-Both `NeuroSkySdk` and `SimulatorTransport` implement `ITransport`, so application code can be transport-agnostic. Note that `NeuroSkySdk` itself implements `ITransport` indirectly through its public surface, but for the cleanest DI pattern inject `ITransport` and dispatch in your composition root:
-
-```csharp
-ITransport transport;
-
-if (args.Contains("--simulator"))
-{
-    var sim = new SimulatorTransport();
-    sim.SetMode(SimulatorTransport.Mode.Focused);
-    await sim.ConnectAsync("simulator");
-    transport = sim;
-}
-else
-{
-    var sdk = new NeuroSkySdk();
-    await sdk.ConnectAsync("AA:BB:CC:DD:EE:FF");
-    // Adapter pattern: wrap NeuroSkySdk to expose ITransport directly,
-    // or call sdk.DataStream() through your own facade.
-    transport = new SdkTransportAdapter(sdk);
-}
-
-await foreach (var data in transport.DataStream(cts.Token))
-    ProcessData(data);
-```
-
----
-
-## 14. Error Handling & Reconnection
+## 13. Error Handling & Reconnection
 
 EEG applications often run for extended periods. Robust error handling and automatic reconnection are essential for production use.
 
@@ -875,7 +794,7 @@ await foreach (var data in sdk.DataStream(cts.Token))
 
 ---
 
-## 15. Advanced Patterns
+## 14. Advanced Patterns
 
 ### WPF application with MVVM
 
@@ -1061,7 +980,7 @@ await foreach (var data in sdk.DataStream(ct))
 
 ---
 
-## 16. Troubleshooting
+## 15. Troubleshooting
 
 ### Connection issues
 
@@ -1101,7 +1020,7 @@ await foreach (var data in sdk.DataStream(ct))
 
 ---
 
-## 17. Testing
+## 16. Testing
 
 The SDK ships with an xUnit test suite for `ThinkGearParser` — the BLE packet parser. These tests require no hardware or Bluetooth adapter.
 
@@ -1149,7 +1068,7 @@ NeuroSky.Tests/
 
 ---
 
-## 18. API Reference
+## 17. API Reference
 
 ### `NeuroSkySdk`
 
@@ -1227,7 +1146,7 @@ Derived from `BrainWaveData.PoorSignal`.
 
 ### `ITransport` (interface)
 
-Common interface implemented by `BleTransport` and `SimulatorTransport`.
+Common interface implemented by `BleTransport`.
 
 ```csharp
 public interface ITransport : IAsyncDisposable
@@ -1241,25 +1160,6 @@ public interface ITransport : IAsyncDisposable
     Task SendCommandAsync(byte cmd);
 }
 ```
-
----
-
-### `SimulatorTransport`
-
-```csharp
-public sealed class SimulatorTransport : ITransport
-{
-    public enum Mode { Random, Focused, Relaxed, PoorSignal }
-    public void SetMode(Mode mode);
-}
-```
-
-| Mode | Description |
-|---|---|
-| `Random` | Random Attention/Meditation each tick |
-| `Focused` | Attention 70~100, Meditation 40~60 |
-| `Relaxed` | Attention 20~50, Meditation 70~100 |
-| `PoorSignal` | PoorSignal 150~200, Attention 0, Meditation 0 |
 
 ---
 

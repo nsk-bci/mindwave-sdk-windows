@@ -12,6 +12,8 @@ Releases before 7.0.0 are documented in the [legacy changelog (v2.0.4)](https://
 - Bluetooth Classic transport (BLE-only from v7.0.0): `BtClassicTransport`, `TransportMode`,
   the `mode` argument of `NeuroSkySdk.ConnectAsync()`, `NeuroSkyUuid.Spp`, and
   `ThinkGearParser.ParseByte()` (ThinkGear serial stream)
+- `SimulatorTransport` from the public API: it is now internal and test-only (deterministic, fixed seed).
+  The sample app connects to a real headset.
 
 ### Added
 - eyeBlink parsing
@@ -26,7 +28,6 @@ First release of the renewed MindWave SDK line for Windows (.NET 8, `net8.0-wind
 - BLE transport (WinRT GATT)
 - `ThinkGearParser` for BLE eSense (`0xEA`/`0xEB`/`0xEC`) and Raw EEG packets
 - `BrainWaveData` model with eSense values, eight EEG bands, Raw EEG (512 Hz), and derived `SignalQuality`
-- `SimulatorTransport` (`Random` / `Focused` / `Relaxed` / `PoorSignal`) for development without a headset
 - `TrimmerRootDescriptor.xml` shipped in the package, so trimmed and AOT builds keep the BLE transport and parser
 - `LICENSE` (Apache License 2.0) and `NOTICE`
 
