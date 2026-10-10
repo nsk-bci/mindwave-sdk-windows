@@ -8,7 +8,12 @@ on:
 jobs:
   publish:
     runs-on: windows-latest
-    environment: production   # Owner 명시 승인 필수 (Sprint 01 Step 6)
+    # Must match the "Environment" field of the nuget.org Trusted Publishing policy exactly.
+    environment: production
+
+    permissions:
+      contents: read     # actions/checkout
+      id-token: write    # GitHub OIDC token for NuGet Trusted Publishing
 
     steps:
       - uses: actions/checkout@v4
@@ -18,17 +23,56 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # The Git tag is the single source of truth for the package version (v7.0.0 -> 7.0.0)
+      - name: Resolve version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}" -replace '^v', ''
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Tag '${{ github.ref_name }}' is not a semantic version" }
+          "value=$v" >> $env:GITHUB_OUTPUT
+
       - name: Build
-        run: dotnet build -c Release
+        run: dotnet build -c Release -p:Version=${{ steps.version.outputs.value }}
 
       - name: Test
         run: dotnet test NeuroSky.Tests/NeuroSky.Tests.csproj -c Release --no-build
 
       - name: Pack
-        run: dotnet pack NeuroSky.Sdk/NeuroSky.Sdk.csproj -c Release --no-build -o artifacts
+        run: dotnet pack NeuroSky.Sdk/NeuroSky.Sdk.csproj -c Release --no-build -o artifacts -p:Version=${{ steps.version.outputs.value }}
+
+      # Trusted Publishing (https://learn.microsoft.com/nuget/nuget-org/trusted-publishing):
+      # exchange the GitHub OIDC token for a temporary API key (valid 1 hour), right before the push.
+      # Rollback to the long-lived key: set the repository variable NUGET_AUTH=apikey and re-run.
+      # The NUGET_API_KEY secret stays in place until Trusted Publishing has succeeded once (v7.0.0-rc.1).
+      - name: NuGet login (OIDC -> temporary API key)
+        id: login
+        if: vars.NUGET_AUTH != 'apikey'
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}   # nuget.org profile name (not the e-mail address)
 
       - name: Push to NuGet
         shell: pwsh
+        env:
+          NUGET_KEY: ${{ vars.NUGET_AUTH == 'apikey' && secrets.NUGET_API_KEY || steps.login.outputs.NUGET_API_KEY }}
         run: |
+          if (-not $env:NUGET_KEY) { throw "No NuGet API key: the Trusted Publishing login produced none (or NUGET_AUTH=apikey without the NUGET_API_KEY secret)" }
+          Write-Host "Auth mode: $(if ('${{ vars.NUGET_AUTH }}' -eq 'apikey') { 'long-lived API key (rollback)' } else { 'Trusted Publishing' })"
           $pkg = Get-ChildItem artifacts/*.nupkg | Select-Object -First 1
-          dotnet nuget push $pkg.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push $pkg.FullName --api-key $env:NUGET_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # A green push step is not proof of publication: --skip-duplicate succeeds without uploading when
+      # the version already exists. Fail unless nuget.org actually lists this version.
+      - name: Verify the version is listed on nuget.org
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.value }}".ToLowerInvariant()
+          $url = "https://api.nuget.org/v3-flatcontainer/neurosky.mindwave.sdk/index.json"
+          for ($i = 1; $i -le 60; $i++) {
+            try { $versions = (Invoke-RestMethod $url).versions } catch { $versions = @() }
+            if ($versions -contains $v) { Write-Host "nuget.org lists $v (check $i)"; exit 0 }
+            Start-Sleep -Seconds 30
+          }
+          throw "nuget.org does not list $v after 30 minutes"

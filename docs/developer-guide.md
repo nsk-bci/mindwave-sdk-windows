@@ -19,7 +19,7 @@ pdf_options:
     <div class="cover-brand">NeuroSky</div>
     <div class="cover-product">MindWave Mobile &middot; Windows SDK</div>
     <div class="cover-title">Developer Guide</div>
-    <div class="cover-version">Version&nbsp; 2.0.3</div>
+    <div class="cover-version">Version&nbsp; 7.0.0</div>
     <div class="cover-date">May 2026</div>
   </div>
   <div class="cover-divider"></div>
@@ -34,7 +34,7 @@ pdf_options:
 </div>
 
 # NeuroSky MindWave Mobile Windows SDK
-## Developer Guide · v2.0.3
+## Developer Guide · v7.0.0
 
 ---
 
@@ -217,7 +217,7 @@ This SDK is designed and tested for the **NeuroSky MindWave Mobile 2** (sometime
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.3" />
+    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="7.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -225,7 +225,7 @@ This SDK is designed and tested for the **NeuroSky MindWave Mobile 2** (sometime
 ### Option C — .NET CLI
 
 ```bash
-dotnet add package NeuroSky.MindWave.Sdk --version 2.0.3
+dotnet add package NeuroSky.MindWave.Sdk --version 7.0.0
 ```
 
 ### Verify installation
@@ -1397,5 +1397,5 @@ public static class NeuroSkyUuid
 
 ---
 
-*NeuroSky MindWave Mobile Windows SDK v2.0.3 · Apache License 2.0*
+*NeuroSky MindWave Mobile Windows SDK v7.0.0 · Apache License 2.0*
 *github.com/nsk-bci/mindwave-sdk-windows*

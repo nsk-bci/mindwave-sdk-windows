@@ -6,12 +6,16 @@
 
 Modern C# SDK for NeuroSky MindWave Mobile EEG headsets — BLE + BT Classic via WinRT.
 
+> [!NOTE]
+> v7.0.0 continues the MindWave SDK line (legacy 4.x), rebuilt from scratch
+> for the BLE-only MindWave Mobile 2. Bluetooth Classic support is removed.
+
 ---
 
 ## Getting Started
 
 > [!TIP]
-> **Before diving into the steps — read the [Developer Guide (PDF)](docs/developer-guide.pdf) first.**  
+> **Before diving into the steps — read the [Developer Guide](docs/developer-guide.md) first.**  
 > It covers the full connection flow, BLE vs BT Classic internals, signal quality handling, packet timing, advanced patterns, and the complete API reference. Most integration questions are answered there.
 
 ### Step 1 — Add the NuGet package
@@ -24,12 +28,12 @@ Search: NeuroSky.MindWave.Sdk → Install
 
 **Edit `.csproj` directly (recommended)**
 ```xml
-<PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.3" />
+<PackageReference Include="NeuroSky.MindWave.Sdk" Version="7.0.0" />
 ```
 
 **.NET CLI**
 ```bash
-dotnet add package NeuroSky.MindWave.Sdk
+dotnet add package NeuroSky.MindWave.Sdk --version 7.0.0
 ```
 
 ### Step 2 — Set the Windows target framework
@@ -44,7 +48,7 @@ WinRT Bluetooth APIs require a Windows-specific TFM. Open your `.csproj` and con
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="2.0.3" />
+    <PackageReference Include="NeuroSky.MindWave.Sdk" Version="7.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -326,25 +330,7 @@ dotnet run --project NeuroSky.Sample
 
 ## Changelog
 
-### v2.0.3
-- **Fix:** `TrimmerRootDescriptor.xml` updated to flattened `NeuroSky.Sdk` FQNs — previous entries still referenced the pre-v2.0.1 nested namespaces (`NeuroSky.Sdk.Transport.*`, `NeuroSky.Sdk.Parser.*`, `NeuroSky.Sdk.Model.*`), so the trimmer silently dropped BLE/BT/parser types in trimmed / AOT builds despite the descriptor being shipped
-- **Fix:** `BleTransport.ConnectAsync` no longer reports `Connected` when the handshake characteristic is missing — it now transitions to `Error` so the caller doesn't wait forever on a stream that will never emit
-
-### v2.0.2
-- `ThinkGearParser` — BT Classic `default` case now correctly skips extended codes (`>= 0x80`) by reading `len` and skipping `len` bytes; previously caused parser desync
-- `ThinkGearParser` — BT Classic `case 0x83` bounds guard: prevents `IndexOutOfRangeException` on truncated payloads
-
-### v2.0.1
-- **Fix:** all types flattened into `NeuroSky.Sdk` — `using NeuroSky.Sdk;` is now sufficient
-
-### v2.0.0
-- WinRT BLE GATT implementation (`Windows.Devices.Bluetooth`)
-- WinRT RFCOMM SPP implementation (`Windows.Devices.Bluetooth.Rfcomm`)
-- `TransportMode` enum: Ble (default), BtClassic
-- `IAsyncEnumerable<BrainWaveData>` stream API
-- Simulator modes: Random / Focused / Relaxed / PoorSignal
-- .NET 8, C# 12
-- Published to NuGet.org
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
