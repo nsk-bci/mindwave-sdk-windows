@@ -10,9 +10,6 @@ public static class NeuroSkyUuid
     public static readonly Guid RawEeg    = new("039afff4-2c94-11e3-9e06-0002a5d5c51b");
     public static readonly Guid Cccd      = new("00002902-0000-1000-8000-00805f9b34fb");
 
-    // BT Classic SPP
-    public static readonly Guid Spp       = new("00001101-0000-1000-8000-00805f9b34fb");
-
     // Device Info (standard BLE)
     public static readonly Guid Manufacturer  = new("00002a29-0000-1000-8000-00805f9b34fb");
     public static readonly Guid ModelNumber   = new("00002a24-0000-1000-8000-00805f9b34fb");

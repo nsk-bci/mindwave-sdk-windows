@@ -4,7 +4,7 @@ namespace NeuroSky.Sdk;
 
 /// <summary>
 /// Entry point for the NeuroSky MindWave Windows SDK.
-/// Uses BLE by default. Pass <see cref="TransportMode.BtClassic"/> to use BT Classic.
+/// Talks to the MindWave Mobile 2 over BLE.
 /// </summary>
 /// <example>
 /// <code>
@@ -20,46 +20,25 @@ namespace NeuroSky.Sdk;
 public sealed class NeuroSkySdk : IAsyncDisposable
 {
     private readonly BleTransport _ble = new();
-    private readonly BtClassicTransport _bt = new();
-    private ITransport _active;
 
-    public ConnectionState State => _active.State;
+    public ConnectionState State => _ble.State;
     public event EventHandler<ConnectionState>? StateChanged;
 
     public NeuroSkySdk()
     {
-        _active = _ble;
         _ble.StateChanged += (_, s) => StateChanged?.Invoke(this, s);
-        _bt.StateChanged  += (_, s) => StateChanged?.Invoke(this, s);
     }
 
     /// <summary>Real-time EEG data stream.</summary>
     public IAsyncEnumerable<BrainWaveData> DataStream(CancellationToken ct = default)
-        => _active.DataStream(ct);
+        => _ble.DataStream(ct);
 
     /// <summary>
-    /// Connect to a MindWave headset.
+    /// Connect to a MindWave headset over BLE. No pairing required.
     /// </summary>
     /// <param name="deviceAddress">Bluetooth MAC address (e.g. "AA:BB:CC:DD:EE:FF")</param>
-    /// <param name="mode">
-    /// <see cref="TransportMode.Ble"/> — BLE only, no pairing required (default).<br/>
-    /// <see cref="TransportMode.BtClassic"/> — BT Classic only, requires Windows pairing.
-    /// </param>
-    public async Task ConnectAsync(string deviceAddress, TransportMode mode = TransportMode.Ble, CancellationToken ct = default)
-    {
-        switch (mode)
-        {
-            case TransportMode.BtClassic:
-                _active = _bt;
-                await _bt.ConnectAsync(deviceAddress, ct);
-                break;
-
-            default: // Ble
-                _active = _ble;
-                await _ble.ConnectAsync(deviceAddress, ct);
-                break;
-        }
-    }
+    public Task ConnectAsync(string deviceAddress, CancellationToken ct = default)
+        => _ble.ConnectAsync(deviceAddress, ct);
 
     /// <summary>
     /// Scans for a MindWave headset by name and returns its MAC address.
@@ -97,9 +76,9 @@ public sealed class NeuroSkySdk : IAsyncDisposable
         return await tcs.Task;
     }
 
-    public async Task DisconnectAsync() => await _active.DisconnectAsync();
+    public async Task DisconnectAsync() => await _ble.DisconnectAsync();
 
-    public async Task SendCommandAsync(byte cmd) => await _active.SendCommandAsync(cmd);
+    public async Task SendCommandAsync(byte cmd) => await _ble.SendCommandAsync(cmd);
 
-    public async ValueTask DisposeAsync() => await _active.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _ble.DisposeAsync();
 }

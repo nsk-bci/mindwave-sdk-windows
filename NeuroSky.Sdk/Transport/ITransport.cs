@@ -21,11 +21,3 @@ public enum ConnectionState
     Connected,
     Error
 }
-
-public enum TransportMode
-{
-    /// <summary>BLE only. No pairing required. Default.</summary>
-    Ble,
-    /// <summary>BT Classic only. Requires Windows pairing.</summary>
-    BtClassic
-}

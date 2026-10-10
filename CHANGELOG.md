@@ -9,7 +9,9 @@ Releases before 7.0.0 are documented in the [legacy changelog (v2.0.4)](https://
 ## [Unreleased]
 
 ### Removed
-- Bluetooth Classic transport (BLE-only from v7.0.0)
+- Bluetooth Classic transport (BLE-only from v7.0.0): `BtClassicTransport`, `TransportMode`,
+  the `mode` argument of `NeuroSkySdk.ConnectAsync()`, `NeuroSkyUuid.Spp`, and
+  `ThinkGearParser.ParseByte()` (ThinkGear serial stream)
 
 ### Added
 - eyeBlink parsing
@@ -21,12 +23,11 @@ First release of the renewed MindWave SDK line for Windows (.NET 8, `net8.0-wind
 ### Added
 - `NeuroSkySdk` with an async API: `ConnectAsync()`, `DisconnectAsync()`, `SendCommandAsync()`, and an `IAsyncEnumerable<BrainWaveData>` data stream
 - `FindDeviceAddressAsync(name, timeoutMs)` to look up a headset's MAC address with a BLE advertisement scan
-- BLE transport (WinRT GATT, default)
-- Bluetooth Classic (WinRT RFCOMM SPP) transport, selected explicitly with `TransportMode.BtClassic` (no automatic fallback)
-- `ThinkGearParser` for BLE eSense (`0xEA`/`0xEB`/`0xEC`), Raw EEG, and ThinkGear serial packets
+- BLE transport (WinRT GATT)
+- `ThinkGearParser` for BLE eSense (`0xEA`/`0xEB`/`0xEC`) and Raw EEG packets
 - `BrainWaveData` model with eSense values, eight EEG bands, Raw EEG (512 Hz), and derived `SignalQuality`
 - `SimulatorTransport` (`Random` / `Focused` / `Relaxed` / `PoorSignal`) for development without a headset
-- `TrimmerRootDescriptor.xml` shipped in the package, so trimmed and AOT builds keep the transports and parser
+- `TrimmerRootDescriptor.xml` shipped in the package, so trimmed and AOT builds keep the BLE transport and parser
 - `LICENSE` (Apache License 2.0) and `NOTICE`
 
 ### Changed
